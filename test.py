@@ -83,6 +83,7 @@ def add(sessID, jdID, content):
 	duration = content['Duration']['value']
 	startyear, startmonth, startday = int(getDate[0]), int(getDate[1]), int(getDate[2])
 	starthour, startmin = int(getTime[0]), int(getTime[1])
+
 	startime = datetime(startyear, startmonth, startday, starthour, startmin, 0)
 	
 	diff = startime - curtime
@@ -97,12 +98,14 @@ def add(sessID, jdID, content):
 
 	if (not dur_day) and (not dur_hour) and (not dur_min):
 		endtime = startime
+		print("could not find wtf?")
 	else:
 		dur_day = 0 if not dur_day else int(dur_day[0])
 		dur_hour = 0 if not dur_hour else int(dur_hour[0])
 		dur_min = 0 if not dur_min else int(dur_min[0])
-		duration = timedelta(days=dur_day, hours=dur_hours, minutes=dur_min)
+		duration = timedelta(days=dur_day, hours=dur_hour, minutes=dur_min)
 		endtime = startime + duration
+		print(endtime)
 
 	agendaType = content['Event']['value']
 	agenda = Agenda(sessID=sessID, jdID=jdID, agendaType=agendaType, startTime=startime, 
@@ -122,7 +125,7 @@ def update(jdID):
 	return
 
 def delete(jdID, content):
-
+	
 	return
 
 def find(jdID, content):
@@ -155,8 +158,12 @@ def find(jdID, content):
 		rst = "您的行程本还没有记录这天的任何行程哈"
 
 	else:
-		rst = ''
+		if (diff.days > 0) or (diff.seconds > 0):
+			rst = "在过往的这天里，您曾有过这些安排："
+		else:
+			rst = "在未来的这天里，您将有这些安排："
 		for e in events:
+			print(e)
 			event = FindEvent(e)
 			rst += event.get_overall_des()
 	return rst

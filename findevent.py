@@ -32,17 +32,27 @@ class FindEvent(object):
 
 		self.eventDetails = e[3]
 
-	def get_startDomain(self, start=True):
-		hour = self.startHour
-		if self.startHour < 12:
+	def get_time_des(self, start=True):
+		hour = self.startHour if start is True else self.endHour
+		minute = self.startMinute if start is True else self.endMinute
+
+		if hour < 12:
 			phrase = "早上"
-		elif 12 <= self.startHour < 18:
+		elif hour == 12 and minute == 0:
+			phrase = "中午"
+		elif 12 < hour < 18:
 			hour = hour - 12
 			phrase = "下午"
 		else:
 			hour = hour - 12
 			phrase = "晚上"
-		return hour, phrase
+
+		if minute == 0:
+			hour_ending = "点"
+		else:
+			hour_ending = "点" + str(minute) + "分"
+
+		return phrase + str(hour) + hour_ending
 
 	def get_eventDuration(self):
 		diffDay = self.diff_start_and_end.days
@@ -51,30 +61,30 @@ class FindEvent(object):
 		year = 0
 		month = 0
 		phrase = ''
-		if diffDay > 365:
+		if diffDay >= 365:
 			year = diffDay/365
 			diffDay = diffDay%365
-			phrase = str(year) + '年'
-		if diffDay > 30:
+			phrase = str(int(year)) + '年'
+		if diffDay >= 30:
 			month = diffDay/30
 			diffDay = diffDay%30
-			phrase += str(month) + '月'
-		if diffDay > 1:
-			phrase += str(diffDay) + '天'
-		if year > 1 or month > 1 or diffDay > 1:
+			phrase += str(int(month)) + '月'
+		if diffDay >= 1:
+			phrase += str(int(diffDay)) + '天'
+		if year >= 1 or month >= 1 or diffDay >= 1:
 			return phrase + '左右'
 
-		if diffSeconds> 3600:
+		print(diffSeconds)
+		if diffSeconds>= 3600:
 			hour = diffSeconds/3600
 			diffSeconds = diffSeconds%3600
-			phrase = str(hour) + '小时'
-		if diffSeconds > 60:
+			phrase = str(int(hour)) + '小时'
+		if diffSeconds >= 60:
 			minute = diffSeconds/60
-			phrase += str(minute) + '分钟'
+			phrase += str(int(minute)) + '分钟'
 
 		return phrase
 
-    #to-do logic has problem
 	def get_day_des(self, start=True):
 		diff = self.diff_cur_and_start if start is True else self.diff_cur_and_end
 
@@ -103,26 +113,29 @@ class FindEvent(object):
 
 	def get_tense(self):
 		if (self.startMonth < self.curMonth) or (self.startDay < self.curDay):
-			tense_phrase = "在过往的这天里，您曾有过这些安排，"
 			tense_word = "已经"
 			tense_le = "了"
 			tense_guo = '过'
 		else:
-			tense_phrase = "在未来的这天里，您将有这些安排，"
 			tense_word = "将"
 			tense_le = ''
 			tense_guo = ''
-		return tense_phrase, tense_word, tense_le
+		return tense_word, tense_le, tense_guo
 
 
 	def get_overall_des(self):
-		hour, domain = self.get_startDomain()
 		duration = self.get_eventDuration()
-		tense_phrase, tense_word, tense_le = self.get_tense()
+		print("this is duration")
+		print(duration)
+		tense_word, tense_le, tense_guo = self.get_tense()
 
-		phrase = tense_phrase
-		phrase += self.get_day_des(start=True) + domain + str(hour) + str(self.startMinute) + ','
-		phrase += '您有'  + tense_guo + '一条关于' + self.eventDetails +  '行程,'
-		phrase += '此行程' + tense_word +'持续' + tense_le + duration + ','
-		phrase += '预计结束时间为' + self.get_day_des(start=False) + '。 '
+
+		phrase = ''
+		phrase += self.get_day_des(start=True) + self.get_time_des(start=True) + '，'
+		phrase += '您有'  + tense_guo + '一条关于' + self.eventDetails +  '的行程，'
+		if duration != '':
+			phrase += '此行程' + tense_word +'持续' + tense_le + duration + '，'
+			phrase += '预计结束时间为' + self.get_day_des(start=False) + self.get_time_des(start=False) + '。 '
+		else:
+			phrase += '只是您并没有记录' + self.eventDetails + '要话费多长时间。' 
 		return phrase

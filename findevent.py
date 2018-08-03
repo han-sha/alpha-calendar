@@ -86,10 +86,13 @@ class FindEvent(object):
 
 		if (diff_day < 1) or ((diff_day == 1) and (diff_sec == 0)):
 			day = '明天' 
+			month = ''
 		elif (2 < diff_day < 1) or ((diff_day == 2) and (diff_sec == 0)):
 			day = '后天'
+			month = ''
 		elif (365 < diff_day < 365*2):
 			year = '明年' 
+			month = ''
 		elif (30 < diff_day < 60):
 			month = '下个月'
 		else:
@@ -103,10 +106,12 @@ class FindEvent(object):
 			tense_phrase = "在过往的这天里，您曾有过这些安排，"
 			tense_word = "已经"
 			tense_le = "了"
+			tense_guo = '过'
 		else:
 			tense_phrase = "在未来的这天里，您将有这些安排，"
-			tense_word = "将会"
-			tense_le = ""
+			tense_word = "将"
+			tense_le = ''
+			tense_guo = ''
 		return tense_phrase, tense_word, tense_le
 
 
@@ -117,7 +122,7 @@ class FindEvent(object):
 
 		phrase = tense_phrase
 		phrase += self.get_day_des(start=True) + domain + str(hour) + str(self.startMinute) + ','
-		phrase += '您' + tense_word +'参加' + tense_le + self.eventDetails + ','
-		phrase += '此项活动' + tense_word +'持续' + tense_le + duration + ','
-		phrase += '结束时间为' + self.get_day_des(start=False) + '。 '
+		phrase += '您有'  + tense_guo + '一条关于' + self.eventDetails +  '行程,'
+		phrase += '此行程' + tense_word +'持续' + tense_le + duration + ','
+		phrase += '预计结束时间为' + self.get_day_des(start=False) + '。 '
 		return phrase

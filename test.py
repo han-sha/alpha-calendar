@@ -91,13 +91,19 @@ def add(sessID, jdID, content):
 		return rst
 
 	# check duration
-	duration_val = re.findall(r'PT(.+?)\/', duration)
-	if len(duration_val) == 0:
+	dur_day = re.findall(r'(\d+)D', duration)
+	dur_hour = re.findall(r'(\d+)H', duration)
+	dur_min = re.findall(r'(\d+)M', duration)
+
+	if (not dur_day) and (not dur_hour) and (not dur_min):
 		endtime = startime
 	else:
-		duration = timedelta(minutes=int(duration_val))
+		dur_day = 0 if not dur_day else int(dur_day[0])
+		dur_hour = 0 if not dur_hour else int(dur_hour[0])
+		dur_min = 0 if not dur_min else int(dur_min[0])
+		duration = timedelta(days=dur_day, hours=dur_hours, minutes=dur_min)
 		endtime = startime + duration
-	print(duration_val)
+
 	agendaType = content['Event']['value']
 	agenda = Agenda(sessID=sessID, jdID=jdID, agendaType=agendaType, startTime=startime, 
 		endTime=endtime, agendaDetail=agendaType)
@@ -128,10 +134,7 @@ def find(jdID, content):
 	day = int(getDate[2])
 	searchtime = datetime(year, month, day)
 	diff = curtime - searchtime
-	print("check conditions")
-	print(curtime)
-	print(searchtime)
-	print(diff)
+
 	if diff.days > 7:
 		rst = "不好意思哈，您的行程本目前只保存过去一星期内的行程记录。超过一星期的记录已经被自动删除了哟"
 		return rst 

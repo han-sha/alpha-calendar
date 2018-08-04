@@ -85,6 +85,7 @@ class FindEvent(object):
 
 		return phrase
 
+	# log here needs to be double checked
 	def get_day_des(self, start=True):
 		diff = self.diff_cur_and_start if start is True else self.diff_cur_and_end
 
@@ -94,8 +95,11 @@ class FindEvent(object):
 		year = ''
 		month = '这个月'
 
-		if (diff_day < 1) or ((diff_day == 1) and (diff_sec == 0)):
+		if (diff_day > 0) or ((diff_day == 0) and (diff_sec > 0)):
 			day = '明天' 
+			month = ''
+		elif (diff_day < 0) or (diff_sec < 0):
+			day = '昨天'
 			month = ''
 		elif (2 < diff_day < 1) or ((diff_day == 2) and (diff_sec == 0)):
 			day = '后天'
@@ -113,29 +117,26 @@ class FindEvent(object):
 
 	def get_tense(self):
 		if (self.startMonth < self.curMonth) or (self.startDay < self.curDay):
-			tense_word = "已经"
-			tense_le = "了"
+			tense_verb = "已经花费了"
+			yuji_verb = ''
 			tense_guo = '过'
 		else:
-			tense_word = "将"
-			tense_le = ''
+			tense_verb = "将持续"
+			yuji_verb = '预计'
 			tense_guo = ''
-		return tense_word, tense_le, tense_guo
+		return tense_verb, tense_guo, yuji_verb
 
 
 	def get_overall_des(self):
 		duration = self.get_eventDuration()
-		print("this is duration")
-		print(duration)
-		tense_word, tense_le, tense_guo = self.get_tense()
-
+		tense_verb, tense_guo, yuji_verb = self.get_tense()
 
 		phrase = ''
 		phrase += self.get_day_des(start=True) + self.get_time_des(start=True) + '，'
-		phrase += '您有'  + tense_guo + '一条关于' + self.eventDetails +  '的行程，'
+		phrase += '您有'  + tense_guo + '一条关于' + self.eventDetails +  '的计划，'
 		if duration != '':
-			phrase += '此行程' + tense_word +'持续' + tense_le + duration + '，'
-			phrase += '预计结束时间为' + self.get_day_des(start=False) + self.get_time_des(start=False) + '。 '
+			phrase += '此计划' + tense_verb  + duration + '，'
+			phrase += yuji_verb + '结束时间为' + self.get_day_des(start=False) + self.get_time_des(start=False) + '。 '
 		else:
-			phrase += '只是您并没有记录' + self.eventDetails + '要话费多长时间。' 
+			phrase += '只是您并没有记录' + self.eventDetails + '要花费多长时间。' 
 		return phrase

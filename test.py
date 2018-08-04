@@ -311,7 +311,7 @@ def postResponse(rst):
 	res["response"]["output"] = {}
 	res["response"]["output"]["text"] = rst
 	res["response"]["output"]["type"] = "PlainText"
-	res["shouldEndSession"] = "true"
+	res["shouldEndSession"] = "false"
 	return res	
 
 def log_error(err):

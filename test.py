@@ -209,10 +209,11 @@ def find(jdID, content):
 	return rst
 
 
-def suggest(jdID):
-	return
-
-
+def suggest(jdID, db):
+	_obj = Suggestion(jdID, db)
+	_suggestion = _obj.get_suggestion()
+	
+	return _suggestion
 
 
 def update(jdID, content):

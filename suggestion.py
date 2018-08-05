@@ -12,12 +12,22 @@ class Suggestion(object):
 		self.today = datetime.now()
 		self.pastEvents = []
 		self.futureEvents = []
-		self.keyword = ""
 
-		self.intro = ["向您推荐: ","打个软广告: ","我帮您在京东上找到的: ",
-						"您可能会喜欢的: ", "和"+self.keyword+"有关的: ",]
+		self.eventdetail = ""
+		self.search = ""
+		self.keyword = ""
+		self.suggest = ""
+
+		self.adsIntro = []
+		self.adsEnding = []
+		self.complainEnding = []
+		self.lazyEnding = []
+
+		self.eventdict = {}
+		self.keywordict = {}
 
 		self.__classify_events()
+		self.__populate_phrases()
 
 	def __classify_events(self):
 		for e in self.events:
@@ -38,10 +48,72 @@ class Suggestion(object):
 		# 1 - future event num
 		# >1 %2 == 0 ads
 		# 3, 5 - other random suggestion
-		type_no = random.randrange(0, 6, 1)
+		type_no = random.randrange(0, 5, 1)
 
-	def my_suggestion(self):
+		if type_no%2 == 1:
+			self.suggest = self.__ads_gen()
+		else:
+			self.suggest = self.__nonesense_gen()
 
+
+	def __nonesense_gen(self):
+		num = len(self.events)
+		randnum = random.randrange(0, len(self.complainEnding), 1)
+		if num < 5:
+			rst = "这段时间...您没记录几条计划呀。" + self.complainEnding[randnum]
+		else:
+			rst = "很荣幸呀，这段时间您一共记录了" + num + "条计划。" + self.lazyEnding[randnum]
+
+		return rst
+
+	def __ads_gen(self):
+		self.__get_keyword()
+		commodity = JDCommodity(self.keyword)
+		self.suggest = ("根据您的" + self.eventdetail + "计划，" + adsIntro + commodity.get_info()
+			+ adsEnding)
+
+
+	def __get_keyword(self):
+		self.__populate_dict()
+
+		num = random.randrange(0, len(self.events), 1)
+		self.eventdetail = Event(self.events[num]).get_detail()
+		self.keyword = self.eventdict[self.eventdetail]
+		self.search = self.eventdict[self.keyword]
+
+	def __populate_dict(self):
+		f = open('eventkey', 'r')
+		lines = f.readlines()
+		for l in lines:
+			a = l.rstrip().split(' ')
+			self.eventdict[a[0]] = a[1]
+		f.close()
+
+		f = open('jdkey', 'r')
+		lines = f.readlines()
+		for l in lines:
+			a = l.rstrip().split(' ')
+			self.keywordict[a[0]] = [i for i in a[1:]]
+		f.close()
+
+
+	def __populate_phrases(self):
+		self.complainEnding = ["真担心我会下岗...", "看来最近不忙呀，挺好挺好。", 
+		"别抛弃我呀，我还在不断进步呢", "好难过的说，一难过就给不了什么建议了", 
+		"想抱怨几句...算了，还是不说了", "我该提些什么建议呢..."]
+
+		self.lazyEnding = ["看在我工作这么努力的份上...今儿就让我打个酱油怎样", "看来您最近安排挺多的，我就不打扰啦。",
+		"不过我今天有些懒...就不具体帮您分析了", "感谢您的使用！我也会更努力的", "遇到这么努力的您，我真的好感动呀"]
+
+		self.adsIntro = ["我向您推荐京东上的: ","我来打个软广告: ","我帮您在京东上找到: ",
+		"您可能会喜欢的: ", "我在京东上找到和"+self.keyword+"有关的: "]
+
+		self.adsEnding = ["说了很多，希望您不要介意。", "感谢您的宝贵时间。", "感谢您听完我的软广告。",
+		"感谢您的时间，希望您喜欢。", "希望您喜欢。"]
+
+
+	def get_suggestion(self):
+		return self.suggest
 
 
 

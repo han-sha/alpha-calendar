@@ -67,7 +67,7 @@ def process_request(req):
 	elif action == 'Find':
 		res = find(jdID, content)
 	elif action == 'Suggestion':
-		res = suggest(jdID)
+		res = suggest(jdID, db)
 	return res
 
 
@@ -210,9 +210,11 @@ def find(jdID, content):
 
 
 def suggest(jdID, db):
+	print("suggest")
+	print("jdID")
 	_obj = Suggestion(jdID, db)
 	_suggestion = _obj.get_suggestion()
-	
+
 	return _suggestion
 
 

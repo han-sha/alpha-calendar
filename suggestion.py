@@ -8,7 +8,8 @@ class Suggestion(object):
 	def __init__(self, jdID, db):
 		self.jdID = jdID
 		self.db = db
-		self.events = db.session.query(Agenda).filter(Agenda.jdID==jdID).all()
+		self.events = db.session.query(Agenda.startTime, Agenda.endTime, 
+			Agenda.agendaType, Agenda.agendaDetail).filter(Agenda.jdID==jdID).all()
 		self.today = datetime.now()
 		self.pastEvents = []
 		self.futureEvents = []
@@ -49,11 +50,13 @@ class Suggestion(object):
 		# >1 %2 == 0 ads
 		# 3, 5 - other random suggestion
 		type_no = random.randrange(0, 5, 1)
+		print(type_no)
 
 		if type_no%2 == 1:
-			self.suggest = self.__ads_gen()
+			suggest = self.__ads_gen()
 		else:
-			self.suggest = self.__nonesense_gen()
+			suggest = self.__nonesense_gen()
+		return suggest
 
 
 	def __nonesense_gen(self):
@@ -69,9 +72,12 @@ class Suggestion(object):
 	def __ads_gen(self):
 		self.__get_keyword()
 		commodity = JDCommodity(self.keyword)
-		self.suggest = ("根据您的" + self.eventdetail + "计划，" + adsIntro + commodity.get_info()
-			+ adsEnding)
-
+		inum = random.randrange(0, len(self.adsIntro), 1)
+		enum = random.randrange(0, len(self.adsEnding), 1)
+		suggest = "根据您的" + self.eventdetail + "计划，" + self.adsIntro[inum] + commodity.get_info() + self.adsEnding[enum]
+		print("ads gen")
+		print(suggest)
+		return suggest
 
 	def __get_keyword(self):
 		self.__populate_dict()
@@ -79,7 +85,7 @@ class Suggestion(object):
 		num = random.randrange(0, len(self.events), 1)
 		self.eventdetail = Event(self.events[num]).get_detail()
 		self.keyword = self.eventdict[self.eventdetail]
-		self.search = self.eventdict[self.keyword]
+		self.search = self.keywordict[self.keyword]
 
 	def __populate_dict(self):
 		f = open('eventkey', 'r')
@@ -113,7 +119,10 @@ class Suggestion(object):
 
 
 	def get_suggestion(self):
-		return self.suggest
+		suggest = self.__suggestion_gen()
+		print("reach the end")
+		print(suggest)
+		return suggest
 
 
 

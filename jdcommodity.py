@@ -36,5 +36,7 @@ class JDCommodity(object):
 	def get_info(self):
 		title, price, comment = self.__process_soup()
 
-		sentence = title + "。" + "价格为" + price + "，" + "目前已经有" + comment
+		sentence = title + "。" + "价格为" + price + "，" + "目前已经有" + comment + "。"
+		print("jdcommidity here")
+		print(sentence)
 		return sentence

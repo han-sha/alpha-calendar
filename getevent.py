@@ -1,12 +1,12 @@
-from datetime import datetime
-from datetime import timedelta
+from datetime import datetime, timedelta
 from agenda import Agenda
+from queriedevent import QueriedEvent
 from sqlalchemy import extract, and_
 import re, random
 
 class GetEvent(object):
 	def __init__(self, db, sessID=None, jdID=None, date=None, time=None, duration=None, 
-		event_type=None, event_detail=None, isFind=False):
+		event_type=None, event_detail=None, isAdd=False):
 
 		self.db = db
 
@@ -28,7 +28,9 @@ class GetEvent(object):
 		self.end_datetime = None
 		self.start_datetime = None
 
-		self.isFind = isFind
+		self.isAdd = isAdd
+
+		self.exclusion = ['所有计划', '忽略此项', '事务']
 
 		self.__get_datetime()
 
@@ -48,7 +50,7 @@ class GetEvent(object):
 		self.start_datetime = datetime(self.year, self.month, 
 			self.day, self.hour, self.minute, 0)
 
-		if self.isFind is False:
+		if self.isAdd is True:
 			self.__calc_endtime()
 
 
@@ -94,6 +96,10 @@ class GetEvent(object):
 
 
 	def add_event(self):
+		if (self.event_detail in self.exclusion):
+			rst = '您计划的具体内容有点奇怪，添加失败了。'
+			return rst
+
 		agenda = Agenda(sessID=self.sessID, jdID=self.jdID, 
 			agendaType=self.event_type, startTime=self.start_datetime, 
 			endTime=self.end_datetime, agendaDetail=self.event_detail)
@@ -103,7 +109,7 @@ class GetEvent(object):
 			self.db.session.commit()
 		except Exception as err:
 			self.__log_error(err)
-			rst = "您的行程本出了点小问题，这条行程添加失败了..."
+			rst = "您的规划本出了点小问题，这条计划添加失败了..."
 			return rst
 
 		rst = "已成功帮您添加了这条计划，感谢您的使用哈"
@@ -119,7 +125,62 @@ class GetEvent(object):
 				extract('month', Agenda.startTime) == self.month,
 				extract('day', Agenda.startTime) == self.day)).all()
 
-		return events
+		if len(events) == 0:
+			rst = "您的行程本还没有记录这天的任何行程哈"
+			return rst
+
+		else:
+			n = len(events)
+			diff = self.get_diff_between_now_start()
+		if (diff.days < 0) or (diff.seconds < 0):
+			rst = "在过去的这天里，您规划了这" + str(n) + "条事项："
+		else:
+			rst = "在未来的这天里，您曾规划过这" + str(n) + "条事项："
+		for e in events:
+			event = QueriedEvent(e)
+			rst += event.get_des()
+		return rst
+
+
+	def delete_events(self):
+		record = []
+		if self.event_detail == '所有计划':
+			events = self.db.session.query(Agenda).filter(and_(Agenda.jdID==self.jdID, 
+				extract('year', Agenda.startTime) == self.year, extract('month', Agenda.startTime) == self.month, 
+				extract('day', Agenda.startTime) == self.day)).all()
+		elif self.time == None:
+			events = self.db.session.query(Agenda).filter(and_( Agenda.jdID==self.jdID, extract('year', Agenda.startTime) == self.year, 
+				extract('month', Agenda.startTime) == self.month, extract('day', Agenda.startTime) == self.day, 
+				Agenda.agendaDetail == self.event_detail)).all()
+		else:
+			events = self.db.session.query(Agenda).filter(and_(Agenda.jdID==self.jdID, extract('year', Agenda.startTime) == self.year,
+				extract('month', Agenda.startTime) == self.month,extract('day', Agenda.startTime) == self.day, 
+				extract('hour', Agenda.startTime) == self.hour,  
+				extract('minute', Agenda.startTime) == self.minute)).all()
+		if not events:
+			rst = '没有找到您需要删除的这条计划，请回复查找或添加来查询或添加这条计划'
+			return rst
+
+		try:
+			for item in events:
+				self.db.session.delete(item)
+				record.append(item)
+			self.db.session.commit()
+
+		except Exception as err:
+			self.__log_error(err)
+			rst = "抱歉...您的规划本出了点小问题，计划删除失败了..."
+			return rst
+
+		rst = '已经帮您删除这' + str(len(record)) + '条计划：'
+		for event in record:
+			e = QueriedEvent(event)
+			minute = '' if e.get_startMinute() == 0 else str(e.get_startMinute()) + '分'
+			rst += str(e.get_startYear()) + '年' + str(e.get_startMonth()) + '月' + str(e.get_startDay()) + '号' + str(e.get_startHour()) + '点' + minute +'的' + e.get_detail() + '计划，'
+
+		rst += '感谢您的使用！'
+		return rst
+
 
 
 	def is_future(self):

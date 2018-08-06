@@ -1,4 +1,4 @@
-import os, json, time, re
+import os, json, time, re, random
 from datetime import datetime
 from datetime import timedelta
 from flask import (Flask, request, abort, jsonify)
@@ -45,7 +45,8 @@ def process_request(req):
 	action = request['intent']['name']
 	jdID = req['session']['user']['userId'].replace('.','')
 	sessID = req['session']['sessionId']
-	content = request['intent']['slots']
+	if 'Alpha' not in action:
+		content = request['intent']['slots']
 
 	if action == 'Add':
 		res = add(sessID, jdID, content)
@@ -57,8 +58,14 @@ def process_request(req):
 		res = find(jdID, content)
 	elif action == 'Suggestion':
 		res = suggest(jdID, db)
+	elif action == 'Alpha.CancelIntent':
+		res = cancel()
 	return res
 
+def cancel():
+	phrase = ['感谢您的使用，向您比心', '我会变得更好，欢迎您下次使用', '您已成功退出，感谢您的使用']
+	n = random.randrange(0, len(phrase), 1)
+	return phrase[n]
 
 def add(sessID, jdID, content):
 	date = content['AlphaDate']['value']
@@ -67,7 +74,7 @@ def add(sessID, jdID, content):
 	event_detail = content['Event']['value']
 
 	event = GetEvent(db=db, sessID=sessID, jdID=jdID, date=date, duration=duration,
-		time=time, event_type=event_detail, event_detail=event_detail)
+		time=time, event_type=event_detail, event_detail=event_detail, isAdd=True)
 
 	diff = event.get_diff_between_now_start()
 	if (diff.days < 0) or (diff.seconds < 0) or (diff.microseconds < 0):
@@ -79,100 +86,28 @@ def add(sessID, jdID, content):
 	
 
 def delete(jdID, content):
-	print(content)
-	getDate = content['deleteDate']['value'].split('-')
-	getTime = content['deleteStartTime']
-	if 'value' in getTime:
-		getTime = getTime['value'].split(':')
-		hour, minute = getTime[0], getTime[1]
-	else:
-		getTime = None
-		hour, minute = 0, 0
-	year = int(getDate[0])
-	month = int(getDate[1])
-	day = int(getDate[2])
-	agendaDetail = content['deleteEvent']['value']
+	date = content['deleteDate']['value']
+	time = content['deleteStartTime']
+	time = time['value'] if 'value' in time else None
+	detail = content['deleteEvent']['value']
+	event = GetEvent(db=db, jdID=jdID, date=date, time=time, event_detail=detail)
+	rst = event.delete_events()
 
-	record = []
-
-	if agendaDetail == '所有计划':
-		events = query_all_events_of_the_day(jdID, year, month, day)
-
-	elif getTime is None:
-		events = query_event_based_on_detail(jdID, year, month, day, agendaDetail)
-
-	else:
-		events = db.session.query(Agenda).filter(and_(
-			Agenda.jdID==jdID, 
-			extract('year', Agenda.startTime) == year,
-			extract('month', Agenda.startTime) == month,
-			extract('day', Agenda.startTime) == day,
-			extract('hour', Agenda.startTime) == hour, 
-			extract('minute', Agenda.startTime) == minute)).all()
-
-	print(not events)
-	if not events:
-		rst = '没有找到您需要删除的这条计划，请回复查找或添加来查询或添加这条计划'
-		return rst
-	for item in events:
-		print(item)
-		record.append(item)
-		db.session.delete(item)
-	db.session.commit()
-
-	if getTime is None:
-		rst = '已经帮您删除' + str(year) + '年' + str(month) + '月' + str(day) + '号的' + agendaDetail + '计划了，感谢您的使用'
-	else:
-		minute = '' if minute == 0 else str(minute) + '分'
-		rst = '已经帮您删除' + str(year) + '年' + str(month) + '月' + str(day) + '号' + str(hour) + '点' + minute + '开始的' + agendaDetail + '计划了，感谢您的使用'
 	return rst
 
+
 def find(jdID, content):
-	# getDate = content['Date']['value'].split('-')
-	# curtime = datetime.now()
-
-	# year = int(getDate[0])
-	# month = int(getDate[1])
-	# day = int(getDate[2])
-	# searchtime = datetime(year, month, day)
-	# diff = curtime - searchtime
 	date = content['Date']['value']
-	time = content['Time']
-	time = content['Time']['value'] if 'value' in time else None
+	time = content['Time']['value'] if 'value' in content['Time'] else None
 
-	search_event = GetEvent(db=db, jdID=jdID, date=date, time=time, isFind=True)
+	search_event = GetEvent(db=db, jdID=jdID, date=date, time=time)
 	diff = search_event.get_diff_between_now_start()
 
 	if diff.days > 7:
 		rst = "不好意思哈，您的规划本只保存过去一星期内的记录。超过一星期的已经被自动删除了哟"
 		return rst 
 	
-	# getTime = content['Time']
-	# if 'value' in getTime:
-	# 	getTime = content['Time']['value']
-	#events = db.session.query(Agenda.jdID, Agenda.startTime).filter(and_(Agenda.jdID==jdID, Agenda.startTime.between(startime, endtime))).all()
-	
-	# events = db.session.query(
-	# 	Agenda.startTime, Agenda.endTime, Agenda.agendaType, Agenda.agendaDetail).filter(and_(
-	# 		Agenda.jdID==jdID, 
-	# 		extract('year', Agenda.startTime) == year,
-	# 		extract('month', Agenda.startTime) == month,
-	# 		extract('day', Agenda.startTime) == day)).all()
-	# no record
-	events = search_event.find_events()
-	if len(events) == 0:
-		rst = "您的行程本还没有记录这天的任何行程哈"
-
-	else:
-		n = len(events)
-		if (diff.days < 0) or (diff.seconds < 0):
-			rst = "在过去的这天里，您规划了这" + str(n) + "条事项："
-		else:
-			rst = "在未来的这天里，您曾规划过这" + str(n) + "条事项："
-		for e in events:
-			print(e)
-			event = QueriedEvent(e)
-			rst += event.get_des()
+	rst = search_event.find_events()
 	return rst
 
 
@@ -244,33 +179,6 @@ def update(jdID, content):
 		db.session.commit()
 	return rst
 
-# def query_event_based_on_time_detail(jdID, year, month, day, hour, details):
-# 	print(year, month, day, hour, details)
-# 	event = db.session.query(Agenda).filter(and_(
-# 		Agenda.jdID==jdID, 
-# 		extract('year', Agenda.startTime) == year,
-# 		extract('month', Agenda.startTime) == month,
-# 		extract('day', Agenda.startTime) == day,
-# 		extract('hour', Agenda.startTime) == hour,
-#		Agenda.agendaDetail == getNewEvent)).first()
-# 	return event
-
-def query_event_based_on_detail(jdID, year, month, day, details):
-	events = db.session.query(Agenda).filter(and_(
-		Agenda.jdID==jdID, 
-		extract('year', Agenda.startTime) == year,
-		extract('month', Agenda.startTime) == month,
-		extract('day', Agenda.startTime) == day,
-		Agenda.agendaDetail == details)).all()
-	return events
-
-def query_all_events_of_the_day(jdID, year, month, day):
-	events = db.session.query(Agenda).filter(and_(
-			Agenda.jdID==jdID, 
-			extract('year', Agenda.startTime) == year,
-			extract('month', Agenda.startTime) == month,
-			extract('day', Agenda.startTime) == day)).all()
-	return events
 
 def postResponse(rst):
 	res = {}

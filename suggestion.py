@@ -27,9 +27,10 @@ class Suggestion(object):
 		self.eventdict = {}
 		self.keywordict = {}
 
+		self.__query_all_events()
 		self.__classify_events()
 		self.__populate_phrases()
-		self.__query_all_events()
+		
 
 	def __query_all_events(self):
 		self.events = self.db.session.query(Agenda.startTime, Agenda.endTime, 
@@ -51,9 +52,9 @@ class Suggestion(object):
 
 	def __suggestion_gen(self):
 		type_no = random.randrange(0, 5, 1)
-		print(type_no)
-
-		if type_no%2 == 1:
+		if len(self.events) == 0:
+			suggest = self.__nonesense_gen()
+		elif type_no%2 == 1:
 			suggest = self.__ads_gen()
 		else:
 			suggest = self.__nonesense_gen()

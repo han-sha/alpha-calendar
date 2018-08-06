@@ -1,6 +1,6 @@
 from datetime import datetime
 from agenda import Agenda
-from event import Event
+from queriedevent import QueriedEvent
 from jdcommodity import JDCommodity
 import random
 
@@ -8,8 +8,8 @@ class Suggestion(object):
 	def __init__(self, jdID, db):
 		self.jdID = jdID
 		self.db = db
-		self.events = db.session.query(Agenda.startTime, Agenda.endTime, 
-			Agenda.agendaType, Agenda.agendaDetail).filter(Agenda.jdID==jdID).all()
+
+		self.events = None
 		self.today = datetime.now()
 		self.pastEvents = []
 		self.futureEvents = []
@@ -29,10 +29,15 @@ class Suggestion(object):
 
 		self.__classify_events()
 		self.__populate_phrases()
+		self.__query_all_events()
+
+	def __query_all_events(self):
+		self.events = self.db.session.query(Agenda.startTime, Agenda.endTime, 
+			Agenda.agendaType, Agenda.agendaDetail).filter(Agenda.jdID==self.jdID).all()
 
 	def __classify_events(self):
 		for e in self.events:
-			event = Event(e)
+			event = QueriedEvent(e)
 			if event.is_future() is False:
 				self.pastEvents.append(event)
 			else:
@@ -45,10 +50,6 @@ class Suggestion(object):
 		return self.futureEvents
 
 	def __suggestion_gen(self):
-		# 0 - past event num
-		# 1 - future event num
-		# >1 %2 == 0 ads
-		# 3, 5 - other random suggestion
 		type_no = random.randrange(0, 5, 1)
 		print(type_no)
 

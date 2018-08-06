@@ -5,8 +5,9 @@ from flask import (Flask, request, abort, jsonify)
 from flask_sqlalchemy import SQLAlchemy
 from sqlalchemy import extract, and_
 
-from findevent import FindEvent
 from suggestion import Suggestion
+from getevent import GetEvent
+from queriedevent import QueriedEvent
 from agenda import Agenda, db
 
 # print a nice greeting.
@@ -46,18 +47,6 @@ def process_request(req):
 	sessID = req['session']['sessionId']
 	content = request['intent']['slots']
 
-
-	# event = db.session.query(Agenda).filter(and_(
-	# Agenda.jdID==jdID, 
-	# extract('year', Agenda.startTime) == 2018,
-	# extract('month', Agenda.startTime) == 8,
-	# extract('day', Agenda.startTime) == 9,
-	# extract('hour', Agenda.startTime) == 9)).first()
-
-	# event.startTime = datetime(2018, 8, 9, 11, 0)
-	# event.endTime = datetime(2018, 8, 11, 11, 0)
-	# db.session.commit()
-
 	if action == 'Add':
 		res = add(sessID, jdID, content)
 	elif action == 'Change':
@@ -72,49 +61,20 @@ def process_request(req):
 
 
 def add(sessID, jdID, content):
-	#curyear, curmonth, curday, curhour, curmin = get_curtime()
-	curtime = datetime.now()
-
-	getDate = content['AlphaDate']['value'].split('-')
-	getTime = content['StartTime']['value'].split(':')
+	date = content['AlphaDate']['value']
+	time = content['StartTime']['value']
 	duration = content['Duration']['value']
-	startyear, startmonth, startday = int(getDate[0]), int(getDate[1]), int(getDate[2])
-	starthour, startmin = int(getTime[0]), int(getTime[1])
+	event_detail = content['Event']['value']
 
-	startime = datetime(startyear, startmonth, startday, starthour, startmin, 0)
-	
-	diff = startime - curtime
+	event = GetEvent(db=db, sessID=sessID, jdID=jdID, date=date, duration=duration,
+		time=time, event_type=event_detail, event_detail=event_detail)
+
+	diff = event.get_diff_between_now_start()
 	if (diff.days < 0) or (diff.seconds < 0) or (diff.microseconds < 0):
-		rst = "您的行程本现在只能协助您规划未来的计划，并不支持记录以往的事务"
+		rst = event.get_add_pastevent_error()
 		return rst
 
-	# check duration
-	dur_week = re.findall(r'(\d+)W', duration)
-	dur_day = re.findall(r'(\d+)D', duration)
-	dur_hour = re.findall(r'(\d+)H', duration)
-	dur_min = re.findall(r'(\d+)M', duration)
-
-	if (not dur_week) and (not dur_day) and (not dur_hour) and (not dur_min):
-		endtime = startime
-	else:
-		dur_week = 0 if not dur_week else int(dur_week[0])
-		dur_day = 0 if not dur_day else int(dur_day[0]) + (dur_week*7)
-		dur_hour = 0 if not dur_hour else int(dur_hour[0])
-		dur_min = 0 if not dur_min else int(dur_min[0])
-		duration = timedelta(days=dur_day, hours=dur_hour, minutes=dur_min)
-		endtime = startime + duration
-
-	agendaType = content['Event']['value']
-	agenda = Agenda(sessID=sessID, jdID=jdID, agendaType=agendaType, startTime=startime, 
-		endTime=endtime, agendaDetail=agendaType)
-	try:
-		db.session.add(agenda)
-		db.session.commit()
-	except Exception as err:
-		log_error(err)
-		rst = "您的行程本出了点小问题，这条行程添加失败了..."
-		return rst
-	rst = "已帮您添加了这条计划，感谢您的使用"
+	rst = event.add_event()
 	return rst
 	
 
@@ -168,50 +128,55 @@ def delete(jdID, content):
 	return rst
 
 def find(jdID, content):
-	getDate = content['Date']['value'].split('-')
-	curtime = datetime.now()
+	# getDate = content['Date']['value'].split('-')
+	# curtime = datetime.now()
 
-	year = int(getDate[0])
-	month = int(getDate[1])
-	day = int(getDate[2])
-	searchtime = datetime(year, month, day)
-	diff = curtime - searchtime
+	# year = int(getDate[0])
+	# month = int(getDate[1])
+	# day = int(getDate[2])
+	# searchtime = datetime(year, month, day)
+	# diff = curtime - searchtime
+	date = content['Date']['value']
+	time = content['Time']
+	time = content['Time']['value'] if 'value' in time else None
+
+	search_event = GetEvent(db=db, jdID=jdID, date=date, time=time, isFind=True)
+	diff = search_event.get_diff_between_now_start()
 
 	if diff.days > 7:
-		rst = "不好意思哈，您的行程本目前只保存过去一星期内的行程记录。超过一星期的记录已经被自动删除了哟"
+		rst = "不好意思哈，您的规划本只保存过去一星期内的记录。超过一星期的已经被自动删除了哟"
 		return rst 
 	
-	getTime = content['Time']
-	if 'value' in getTime:
-		getTime = content['Time']['value']
+	# getTime = content['Time']
+	# if 'value' in getTime:
+	# 	getTime = content['Time']['value']
 	#events = db.session.query(Agenda.jdID, Agenda.startTime).filter(and_(Agenda.jdID==jdID, Agenda.startTime.between(startime, endtime))).all()
 	
-	events = db.session.query(
-		Agenda.startTime, Agenda.endTime, Agenda.agendaType, Agenda.agendaDetail).filter(and_(
-			Agenda.jdID==jdID, 
-			extract('year', Agenda.startTime) == year,
-			extract('month', Agenda.startTime) == month,
-			extract('day', Agenda.startTime) == day)).all()
+	# events = db.session.query(
+	# 	Agenda.startTime, Agenda.endTime, Agenda.agendaType, Agenda.agendaDetail).filter(and_(
+	# 		Agenda.jdID==jdID, 
+	# 		extract('year', Agenda.startTime) == year,
+	# 		extract('month', Agenda.startTime) == month,
+	# 		extract('day', Agenda.startTime) == day)).all()
 	# no record
+	events = search_event.find_events()
 	if len(events) == 0:
 		rst = "您的行程本还没有记录这天的任何行程哈"
 
 	else:
 		n = len(events)
 		if (diff.days < 0) or (diff.seconds < 0):
-			rst = "在未来的这天里，您规划了这" + str(n) + "条事项："
+			rst = "在过去的这天里，您规划了这" + str(n) + "条事项："
 		else:
-			rst = "在过往的这天里，您曾规划过这" + str(n) + "条事项："
+			rst = "在未来的这天里，您曾规划过这" + str(n) + "条事项："
 		for e in events:
 			print(e)
-			event = FindEvent(e)
-			rst += event.get_overall_des()
+			event = QueriedEvent(e)
+			rst += event.get_des()
 	return rst
 
 
 def suggest(jdID, db):
-	print("suggest")
-	print("jdID")
 	_obj = Suggestion(jdID, db)
 	_suggestion = _obj.get_suggestion()
 

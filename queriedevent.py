@@ -113,7 +113,7 @@ class QueriedEvent(object):
 			day = str(_day) + '号'
 
 		return year + month + day
-		
+
 
 	def __get_tense(self):
 		if self.is_future() is True:
@@ -128,18 +128,23 @@ class QueriedEvent(object):
 		return tense_verb, tense_guo, yuji_verb
 
 
-	def get_des(self):
+	def get_des(self, anstype=None):
 		duration = self.__duration_des_gen()
 		tense_verb, tense_guo, yuji_verb = self.__get_tense()
-
 		phrase = ''
-		phrase += self.__day_des_gen(start=True) + self.__time_des_gen(start=True) + '，'
-		phrase += '您有'  + tense_guo + '一条关于' + self.detail +  '的计划，'
-		if duration != '':
-			phrase += '此计划' + tense_verb  + duration + '，'
-			phrase += yuji_verb + '结束时间为' + self.__day_des_gen(start=False) + self.__time_des_gen(start=False) + '。 '
+
+		if anstype == '有什么事要做':
+			phrase += self.__time_des_gen(start=True)
+			phrase += '您有' + tense_guo + '一条为时' + duration + '的' + self.detail + '计划。'
+
 		else:
-			phrase += '只是您并没有记录' + self.detail + '要花费多长时间。' 
+			phrase += self.__day_des_gen(start=True) + self.__time_des_gen(start=True) + '，'
+			phrase += '您有'  + tense_guo + '一条关于' + self.detail +  '的计划，'
+			if duration != 0:
+				phrase += '此计划' + tense_verb  + duration + '，'
+				phrase += yuji_verb + '结束时间为' + self.__day_des_gen(start=False) + self.__time_des_gen(start=False) + '。 '
+			else:
+				phrase += '只是您并没有记录' + self.detail + '要花费多长时间。' 
 		return phrase
 
 

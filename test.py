@@ -100,6 +100,8 @@ def delete(jdID, content):
 def find(jdID, content):
 	date = content['Date']['value']
 	time = content['Time']['value'] if 'value' in content['Time'] else None
+	reply_type = content['findAction']['value']
+	#print(reply_type)
 
 	search_event = GetEvent(db=db, jdID=jdID, date=date, time=time)
 	diff = search_event.get_diff_between_now_start()
@@ -108,7 +110,7 @@ def find(jdID, content):
 		rst = "不好意思哈，您的规划本只保存过去一星期内的记录。超过一星期的已经被自动删除了哟"
 		return rst 
 	
-	rst = search_event.find_events()
+	rst = search_event.find_events(anstype=reply_type)
 	return rst
 
 

@@ -117,7 +117,7 @@ class GetEvent(object):
 		return rst
 
 
-	def find_events(self):
+	def find_events(self, anstype=None):
 		if self.time is None:
 			events = self.db.session.query(
 			Agenda.startTime, Agenda.endTime, Agenda.agendaType, Agenda.agendaDetail).filter(and_(
@@ -134,12 +134,14 @@ class GetEvent(object):
 			n = len(events)
 			diff = self.get_diff_between_now_start()
 		if (diff.days < 0) or (diff.seconds < 0):
-			rst = "在过去的这天里，您规划了这" + str(n) + "条事项："
+			rst = "这天的" \
+			 if anstype == '有什么事要做' else "在过去的这天里，您规划了" + str(n) + "条事项："
 		else:
-			rst = "在未来的这天里，您曾规划过这" + str(n) + "条事项："
+			rst = "这天的"\
+			if anstype == '有什么事要做' else "在未来的这天里，您规划了" + str(n) + "条事项："
 		for e in events:
 			event = QueriedEvent(e)
-			rst += event.get_des()
+			rst += event.get_des(anstype=anstype)
 		return rst
 
 

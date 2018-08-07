@@ -8,6 +8,7 @@ from sqlalchemy import extract, and_
 from suggestion import Suggestion
 from getevent import GetEvent
 from queriedevent import QueriedEvent
+from update import Update
 from agenda import Agenda, db
 
 # print a nice greeting.
@@ -120,63 +121,18 @@ def suggest(jdID, db):
 
 def update(jdID, content):
 	print(content)
-	curtime = datetime.now()
+	time1, time2 = content['originalStartTime']['value'], content['changeStartTime']['value']
+	date1, date2 = content['originalDate']['value'], content['newDate']['value']
+	event1, event2 = content['originalEvent']['value'], content['changeEvent']['value']
+	event2 = event1 if event2 == '原始' else event2
+	duration2 = content['changeDuration']['value']
 
-	getOriginalTime = content['originalStartTime']['value'].split(':')
-	getNewTime = content['changeStartTime']['value'].split(':')
-	getOriginalDate = content['originalDate']['value'].split('-')
-	getNewDate = content['newDate']['value'].split('-')
-	getOriginalEvent = content['originalEvent']['value']
-	getNewEvent = content['changeEvent']['value']
-	if getNewEvent == '原始':
-		getNewEvent = getOriginalEvent
+	e1 = GetEvent(date=date1, time=time1, event_detail=event1)
+	e2 = GetEvent(date=date2, time=time2, duration=duration2, event_detail=event2, isAdd=True)
 
-	duration = content['changeDuration']['value']
+	update = Update(db=db, jdID=jdID, old_event=e1, new_event=e2)
+	rst = update.update()
 
-	startyear, startmonth, startday = int(getOriginalDate[0]), int(getOriginalDate[1]), int(getOriginalDate[2])
-	starthour, startmin = int(getOriginalTime[0]), int(getOriginalTime[1])
-
-	n_startyear, n_startmonth, n_startday = int(getOriginalDate[0]), int(getOriginalDate[1]), int(getOriginalDate[2])
-	n_starthour, n_startmin = int(getOriginalTime[0]), int(getOriginalTime[1])
-	
-	n_startime = datetime(n_startyear, n_startmonth, n_startday, n_starthour, n_startmin, 0)
-	diff = n_startime - curtime
-
-	if (diff.days < 0) or (diff.seconds < 0) or (diff.microseconds < 0):
-		rst = "更改失败了，您所给的计划开始时间已过。如需删除计划，请回复删除。"
-		return rst
-
-	dur_week = re.findall(r'(\d+)W', duration)
-	dur_day = re.findall(r'(\d+)D', duration)
-	dur_hour = re.findall(r'(\d+)H', duration)
-	dur_min = re.findall(r'(\d+)M', duration)
-
-	dur_week = 0 if not dur_week else int(dur_week[0])
-	dur_day = 0 if not dur_day else int(dur_day[0]) + (dur_week*7)
-	dur_hour = 0 if not dur_hour else int(dur_hour[0])
-	dur_min = 0 if not dur_min else int(dur_min[0])
-
-	duration = timedelta(days=dur_day, hours=dur_hour, minutes=dur_min)
-
-	#events = query_event_based_on_time_detail(jdID=jdID, year=startyear, month=startmonth,
-	#	day=startday, hour=starthour, details=getOriginalEvent)
-
-	event = db.session.query(Agenda).filter(and_(
-		Agenda.jdID==jdID, 
-		extract('year', Agenda.startTime) == startyear,
-		extract('month', Agenda.startTime) == startmonth,
-		extract('day', Agenda.startTime) == startday,
-		extract('hour', Agenda.startTime) == starthour,
-		Agenda.agendaDetail == getNewEvent)).first()
-
-	if not event:
-		rst = "更改失败了，规划本没有找到原始计划。请回复查找确认记录，或回复删除记录"
-	else:
-		event.startTime = n_startime
-		event.endTime = n_startime + duration
-		event.agendaDetail = getNewEvent
-
-		db.session.commit()
 	return rst
 
 

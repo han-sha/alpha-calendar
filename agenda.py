@@ -20,3 +20,21 @@ class Agenda(db.Model):
 		self.endTime = endTime
 		self.agendaType = agendaType
 		self.agendaDetail = agendaDetail
+
+	def startyear(self):
+		return self.startTime.year
+
+	def startmonth(self):
+		return self.startTime.month
+
+	def startday(self):
+		return self.startTime.day
+
+	def starthour(self):
+		return self.startTime.hour
+
+	def startminute(self):
+		return self.startTime.minute
+
+	def detail(self):
+		return self.agendaDetail

@@ -5,7 +5,7 @@ from sqlalchemy import extract, and_
 import re, random
 
 class GetEvent(object):
-	def __init__(self, db, sessID=None, jdID=None, date=None, time=None, duration=None, 
+	def __init__(self, db=None, sessID=None, jdID=None, date=None, time=None, duration=None, 
 		event_type=None, event_detail=None, isAdd=False):
 
 		self.db = db
@@ -30,11 +30,12 @@ class GetEvent(object):
 
 		self.isAdd = isAdd
 
-		self.exclusion = ['所有计划', '忽略此项', '事务']
+		self.exclusion = ['所有计划', '忽略此项', '事务', '原始']
 
 		self.__get_datetime()
 
 	def __get_datetime(self):
+
 		date = self.date.split('-')
 		self.year = int(date[0])
 		self.month = int(date[1])
@@ -126,7 +127,7 @@ class GetEvent(object):
 				extract('day', Agenda.startTime) == self.day)).all()
 
 		if len(events) == 0:
-			rst = "您的行程本还没有记录这天的任何行程哈"
+			rst = "您的行程本还没有记录这天的任何计划哈"
 			return rst
 
 		else:
@@ -173,22 +174,44 @@ class GetEvent(object):
 			return rst
 
 		rst = '已经帮您删除这' + str(len(record)) + '条计划：'
-		for event in record:
-			e = QueriedEvent(event)
-			minute = '' if e.get_startMinute() == 0 else str(e.get_startMinute()) + '分'
-			rst += str(e.get_startYear()) + '年' + str(e.get_startMonth()) + '月' + str(e.get_startDay()) + '号' + str(e.get_startHour()) + '点' + minute +'的' + e.get_detail() + '计划，'
+		for e in record:
+			minute = '' if e.startminute() == 0 else str(e.startminute()) + '分'
+			rst += str(e.startyear()) + '年' + str(e.startmonth()) + '月' + str(e.startday()) + '号' + str(e.starthour()) + '点' + minute +'的' + e.detail() + '计划，'
 
 		rst += '感谢您的使用！'
 		return rst
 
 
+	def get_year(self):
+		return int(self.year)
+
+	def get_month(self):
+		return int(self.month)
+
+	def get_day(self):
+		return int(self.day)
+
+	def get_hour(self):
+		return int(self.hour)
+
+	def get_startime(self):
+		return self.start_datetime
+
+	def get_duration(self):
+		return self.duration
+
+
+	def get_detail(self):
+		return self.event_detail
+
 
 	def is_future(self):
-		diff = self.between_now_start()
+		diff = self.get_diff_between_now_start()
 		days = diff.days
 		seconds = diff.seconds
+		micro = diff.microseconds
 
-		if days < 0 or seconds < 0:
+		if days < 0 or seconds < 0 or micro < 0:
 			return False
 		else:
 			return True

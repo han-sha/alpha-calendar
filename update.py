@@ -1,4 +1,4 @@
-from getevent import GetEvent
+from event import Event
 from agenda import Agenda
 from sqlalchemy import extract, and_
 

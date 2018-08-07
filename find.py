@@ -10,6 +10,7 @@ class Find(object):
 		self.db = db
 		self.jdID = jdID
 		self.e = event
+		self.nearest = nearest
 
 	def find(self):
 		rst = self.__which_find()
@@ -20,6 +21,7 @@ class Find(object):
 		date = self.e.get_date()
 		time = self.e.get_time()
 		detail = self.e.get_detail()
+		nearest = self.nearest
 
 		if date is None and time is None and detail is None:
 			rst = self.__find_none()
@@ -51,7 +53,7 @@ class Find(object):
 
 			rst = '您下一次的' + detail + '是在' + self.__day_des_gen(year=year, month=month, day=day) + \
 			self.__time_des_gen(hour=hour, minute=minute) + ',' + \
-			+ '预计需要' + self.__duration_des_gen(start=startime, end=endtime)
+			'预计需要' + self.__duration_des_gen(start=startime, end=endtime)
 		return rst
 
 
@@ -151,7 +153,7 @@ class Find(object):
 		return phrase + str(_hour) + hour_ending
 
 
-	def __day_des_gen(self, year=None, _month=None, day=None):
+	def __day_des_gen(self, year=None, month=None, day=None, start=True):
 		now = datetime.now()
 
 		_year = self.e.get_year() if year is None else year

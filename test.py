@@ -102,7 +102,7 @@ def delete(jdID, content):
 def find(jdID, content):
 	date = content['Date']['value'] if 'value' in content['Date'] else None
 	time = content['Time']['value'] if 'value' in content['Time'] else None
-	nearest = content['nearest']['value'] if 'value' in content['nearest'] else None
+	nearest = True if 'value' in content['nearest'] else False
 	detail = content['eventDetail']['value'] if 'value' in content['eventDetail'] else None
 	reply_type = content['findAction']['value']
 	#print(reply_type)

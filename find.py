@@ -1,6 +1,4 @@
 from datetime import datetime
-from getevent import GetEvent
-from queriedevent import QueriedEvent
 from agenda import Agenda
 from sqlalchemy import extract, and_
 import random
@@ -12,30 +10,98 @@ class Find(object):
 		self.e = event
 		self.nearest = nearest
 
+		self.key = []
+
+		if self.e.get_detail() is not None:
+			self.__key_gen()
+
 	def find(self):
+		if self.e.get_detail() is not None:
+			check, rst = self.__santity_check()
+			if check is False:
+				return rst
+
 		rst = self.__which_find()
 		return rst
 
 
+	def __key_gen():
+		f = open('detail', 'r')
+		lines = f.readlines()
+		for l in lines:
+			self.key.append(l.rstrip())
+
+
+	def __santity_check(self):
+		if self.e.get_detail() not in self.key:
+			return False, '啊噢，我还不是很聪明，没有懂您的意思。换种说法的话我也许能懂呢。'
+		else:
+			return True, ''
+
+
 	def __which_find(self):
-		date = self.e.get_date()
-		time = self.e.get_time()
-		detail = self.e.get_detail()
+		year, month, day, hour, minute, detail = \
+		self.e.get_year(), self.e.get_month(), self.e.get_day(), \
+		self.e.get_hour(), self.e.get_minute(), self.e.get_detail()
 		nearest = self.nearest
 
-		if date is None and time is None and detail is None:
+		if year is None and hour is None and detail is None:
 			rst = self.__find_none()
-		elif time is None and detail is None:
+		elif hour is None and detail is None:
 			rst = self.__find_all()
-		elif date is None and time is None and nearest is True:
+		elif year is None and hour is None and nearest is True:
 			rst = self.__find_next()
 		elif detail is None:
-			rst = self.__find_event(date=date)
+			rst = self.__find_event(year=year, month=month, day=day)
 		else:
-			rst = self.__confirm(date=date)
-
+			rst = self.__confirm(year=year, month=month, \
+				day=day, hour=hour, minute=minute, detail=detail)
 		return rst
 
+
+	def __confirm(self, year=None, month=None,\
+	 day=None, hour=None, minute=None, detail=None):
+		year, month, day, hour, minute, detail = year, month, day, hour, minute, detail
+		if hour is None:
+			event = self.db.session.query(Agenda.startTime, Agenda.endTime, Agenda.agendaDetail).filter(
+				and_(Agenda.jdID==self.jdID,
+				extract('year', Agenda.startTime) == year,
+				extract('month', Agenda.startTime) == month,
+				extract('day', Agenda.startTime) == day,
+				Agenda.agendaDetail == detail)).first()
+			if event is None:
+				ending = self.__find_next().replace('您还没有安排下次的','事实上，您还没有安排任何未来的')
+				rst = '您并没有在' + self.e.day_des_gen() + \
+				'安排' + detail + '计划呢。' + ending
+			else:
+				a = Event(year=event[0].year, month=event[0].month, day=event[0].day, \
+					hour=event[0].hour, minute=event[0].minute, duration=event[1]-event[0])
+
+				rst = '您在' + a.day_des_gen() + a.time_des_gen() + '有安排' + \
+				detail + '计划。该计划预计需要' + a.duration_des_gen() + '。请问您还需要查什么呢？'
+		else:
+			event = self.db.session.query(Agenda.startTime, Agenda.endTime, Agenda.agendaDetail).filter(
+				and_(Agenda.jdID==self.jdID,
+				extract('year', Agenda.startTime) == year,
+				extract('month', Agenda.startTime) == month,
+				extract('day', Agenda.startTime) == day,
+				extract('hour', Agenda.startTime) == hour,
+				extract('minute', Agenda.startTime) == minute,
+				Agenda.agendaDetail == detail)).first()
+			if event is None:
+				ending = self.__find_next().replace('您还没有安排下次的','事实上，您还没有安排任何未来的')
+				rst = '您并没有在' + self.e.day_des_gen() + self.e.time_des_gen() + \
+				'安排' + detail + '计划呢。' + ending
+			else:
+				opening = ['确实有这个计划噢。', '有的噢。', '您没有记错，确实有这个计划呢。']
+				n = random.randrange(0, len(opening), 1)
+
+				a = Event(year=event[0].year, month=event[0].month, day=event[0].day, \
+					hour=event[0].hour, minute=event[0].minute, duration=event[1]-event[0])
+
+				rst = opening[n] + '该计划预计需要' + a.duration_des_gen() + '，结束时间大概在' + \
+				a.time_des_gen() + '左右。请问我还可以帮您查什么？'
+		return rst
 
 
 	def __find_next(self):
@@ -44,45 +110,52 @@ class Find(object):
 			Agenda.startTime, Agenda.endTime, Agenda.agendaDetail).filter(and_(
 				Agenda.jdID==self.jdID,
 				Agenda.agendaDetail == detail)).first()
-		if len(event) == 0:
-			rst = '您还没有安排下次的' + detail + '哟。您可以回复添加计划来规划下一次的' + detail + '。'
+		if event is None:
+			rst = '您还没有安排下次的' + detail + '计划哟。您可以回复添加计划来规划下一次的' + detail + '。'
 		else:
-			year, month, day, hour, minute = event[0].year, event[0].month, \
-			event[0].day, event[0].hour, event[0].minute
-			startime, endtime = event[0], event[1]
+			ending = ['可不要忘了噢！', 
+			'如需取消安排，请回复删除下一次的' + detail + '计划或者修改下一次的' + detail + '计划。',
+			'感谢您的使用，祝您一切顺意。']
+			n = random.randrange(0, len(ending), 1)
+			
+			a = Event(year=event[0].year, month=event[0].month, day=event[0].day, \
+					hour=event[0].hour, minute=event[0].minute, duration=event[1]-event[0])
 
-			rst = '您下一次的' + detail + '是在' + self.__day_des_gen(year=year, month=month, day=day) + \
-			self.__time_des_gen(hour=hour, minute=minute) + ',' + \
-			'预计需要' + self.__duration_des_gen(start=startime, end=endtime)
+			rst = '您下一次的' + detail + '是在' + a.day_des_gen() + a.time_des_gen() + ',' + \
+			'预计需要' + a.duration_des_gen() + '。' + ending[n]
 		return rst
 
 
 
-	def __find_event(self, date=None):
+	def __find_event(self, year=None, month=None, day=None, hour=None, minute=None):
 		now = datetime.now()
-		year, month, day = now.year, now.month, now.day if date is None \
-		else self.e.get_year(), self.e.get_month(), self.e.get_day()
+		_year, _month, _day = now.year, now.month, now.day if year is None \
+		else year, month, day
 
-		hour, minute = self.e.get_hour(), self.e.get_minute()
+		_hour, _minute = hour, minute
 
 		events = self.db.session.query(
 			Agenda.startTime, Agenda.endTime, Agenda.agendaDetail).filter(and_(
 				Agenda.jdID==self.jdID, 
-				extract('year', Agenda.startTime) == year,
-				extract('month', Agenda.startTime) == month,
-				extract('day', Agenda.startTime) == day,
-				extract('hour', Agenda.startTime) == hour,
-				extract('minute', Agenda.startTime == minute))).all()
+				extract('year', Agenda.startTime) == _year,
+				extract('month', Agenda.startTime) == _month,
+				extract('day', Agenda.startTime) == _day,
+				extract('hour', Agenda.startTime) == _hour,
+				extract('minute', Agenda.startTime == _minute))).all()
 		minute = '' if minute == 0 else str(minute) + '分'
 		if len(events) == 0:
 			pos = '今天' + str(hour) + '点，' if date is None else \
-			self.__day_des_gen() + self.__time_des_gen()
-			rst = '您还没有在' + pos + '安排任何计划哟。您可以回复添加来增加新计划。'
+			self.e.day_des_gen(start=True) + self.e.time_des_gen(start=True)
+			rst = '您还没有在' + pos + '安排任何计划哟。您可以回复添加' + pos +'的计划来增加新计划。'
 
 		else:
 			for e in events:
-				event = QueriedEvent(e)
-				rst += event.get_des(anstype=anstype)
+				year, month, day, hour, minute, duration, detail = \
+				e.startyear(), e.startmonth(), e.startday(), e.starthour(), \
+				e.startminute(), e.duration(), e.detail()
+				a = Event(year=year, month=month, day=day, 
+					hour=hour, minute=minute, duration=duration, event_detail=detail)
+				rst += a.get_des()
 
 		return rst
 
@@ -125,102 +198,10 @@ class Find(object):
 				rst = "这天的" if anstype == '有什么事要做' \
 				else "在未来的这天里，您规划了" + str(n) + "条事项："
 			for e in events:
-				event = QueriedEvent(e)
-				rst += event.get_des(anstype=anstype)
+				year, month, day, hour, minute, duration, detail = \
+				e.startyear(), e.startmonth(), e.startday(), e.starthour(), \
+				e.startminute(), e.duration(), e.detail()
+				a = Event(year=year, month=month, day=day, 
+					hour=hour, minute=minute, duration=duration, event_detail=detail)
+				rst += a.get_des()
 		return rst
-
-
-	def __time_des_gen(self, hour=None, minute=None):
-		_hour = self.e.get_hour() if hour is None else hour
-		_minute = self.e.get_minute() if minute is None else minute
-
-		if _hour < 12:
-			phrase = "早上"
-		elif _hour == 12 and _minute == 0:
-			phrase = "中午"
-		elif 12 < _hour < 18:
-			_hour = _hour - 12
-			phrase = "下午"
-		else:
-			_hour = _hour - 12
-			phrase = "晚上"
-
-		if _minute == 0:
-			hour_ending = "点"
-		else:
-			hour_ending = "点" + str(_minute) + "分"
-
-		return phrase + str(_hour) + hour_ending
-
-
-	def __day_des_gen(self, year=None, month=None, day=None, start=True):
-		now = datetime.now()
-
-		_year = self.e.get_year() if year is None else year
-		_month = self.e.get_month() if month is None else month
-		_day = self.e.get_day() if day is None else day
-
-		year_diff = _year - now.year
-		month_diff = _month - now.month
-		day_diff = _day - now.day
-
-		day = ''
-
-		if year_diff == 0:
-			year = ''
-		elif year_diff == 1:
-			year = '明年'
-		else:
-			year = str(_year) + '年'
-
-		if (year_diff == 0) & (month_diff == 0) & (day_diff > 2) & start is True:
-			month = '这个月'
-		elif (year_diff == 0) & (month_diff == 0) & (day_diff < 2):
-			month = ''
-		elif (year_diff == 0) & (month_diff == 1):
-			month = '下个月'
-		else:
-			month = str(_month) + '月'
-
-		if (year_diff ==0) & (month_diff == 0) & (day_diff == 0):
-			day = '今天'
-		elif (year_diff == 0) & (month_diff == 0) & (day_diff == 1):
-			day = '明天'
-		elif (year_diff == 0) & (month_diff == 0) & (day_diff == 2):
-			day = '后天'
-		else:
-			day = str(_day) + '号'
-
-		return year + month + day
-
-
-	def __duration_des_gen(self, start, end):
-		duration = end - start
-		diffDay = duration.days
-		diffSeconds = duration.seconds
-
-		year = 0
-		month = 0
-		phrase = ''
-		if diffDay >= 365:
-			year = diffDay/365
-			diffDay = diffDay%365
-			phrase = str(int(year)) + '年'
-		if diffDay >= 30:
-			month = diffDay/30
-			diffDay = diffDay%30
-			phrase += str(int(month)) + '月'
-		if diffDay >= 1:
-			phrase += str(int(diffDay)) + '天'
-		if year >= 1 or month >= 1 or diffDay >= 1:
-			return phrase + '左右'
-
-		if diffSeconds>= 3600:
-			hour = diffSeconds/3600
-			diffSeconds = diffSeconds%3600
-			phrase = str(int(hour)) + '小时'
-		if diffSeconds >= 60:
-			minute = diffSeconds/60
-			phrase += str(int(minute)) + '分钟'
-
-		return phrase

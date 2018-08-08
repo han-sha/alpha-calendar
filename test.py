@@ -7,8 +7,10 @@ from sqlalchemy import extract, and_
 
 from event import Event
 from find import Find
-from update import Update
+from delete import Delete
+from add import Add
 from suggestion import Suggestion
+
 from agenda import Agenda, db
 
 # print a nice greeting.
@@ -65,49 +67,48 @@ def process_request(req):
 
 
 def cancel():
-	phrase = ['感谢您的使用，向您比心', '我会变得更好，欢迎您下次使用', '您已成功退出，感谢您的使用']
+	phrase = ['感谢您的使用，向您比心。', '我会变得更好，欢迎您再次使用。', '您已成功退出，感谢您的使用。']
 	n = random.randrange(0, len(phrase), 1)
 	return phrase[n]
 
 
 def add(sessID, jdID, content):
-	date = content['AlphaDate']['value']
-	time = content['StartTime']['value']
-	duration = content['Duration']['value']
-	event_detail = content['Event']['value']
+	date, time, duration, detail = \
+	content['AlphaDate'], content['StartTime'], content['Duration'], content['Event']
 
-	event = Event(db=db, sessID=sessID, jdID=jdID, date=date, duration=duration,
-		time=time, event_type=event_detail, event_detail=event_detail, isAdd=True)
+	year, month, day, hour, minute, duration, detail = \
+	get_properties(date=date, time=time, duration=duration, detail=detail)
 
-	diff = event.get_diff_between_now_start()
-	if (diff.days < 0) or (diff.seconds < 0) or (diff.microseconds < 0):
-		rst = event.get_add_pastevent_error()
-		return rst
+	event = Event(sessID=sessID, jdID=jdID, year=year, month=month, 
+		day=day,hour=hour, minute=minute, duration=duration, event_detail=detail, isAdd=True)
 
-	rst = event.add_event()
+	add = Add(db=db, jdID=jdID, event=event)
+	rst = add.add()
 	return rst
-	
+
 
 def delete(jdID, content):
-	date = content['deleteDate']['value']
-	time = content['deleteStartTime']
-	time = time['value'] if 'value' in time else None
-	detail = content['deleteEvent']['value']
-	event = Event(db=db, jdID=jdID, date=date, time=time, event_detail=detail)
-	rst = event.delete_events()
+	date, time, detail = content['deleteDate'], content['deleteStartTime'], content['deleteEvent']
+	year, month, day, hour, minute, detail = get_properties(date=date, time=time, detail=detail)
+
+	event = Event(db=db, jdID=jdID, year=year, month=month, 
+		day=day, hour=hour, minute=minute, detail=detail, event_detail=detail)
+	delete = Delete(db=db, jdID=jdID, event=event)
+	rst = delete.delete()
 
 	return rst
 
 
 def find(jdID, content):
-	date = content['Date']['value'] if 'value' in content['Date'] else None
-	time = content['Time']['value'] if 'value' in content['Time'] else None
+	date, time, detail = content['Date'], content['alphaTime'], content['eventDetail']
+	year, month, day, hour, minute, detail = get_properties(date=date, time=time, detail=detail)
+
 	nearest = True if 'value' in content['nearest'] else False
-	detail = content['eventDetail']['value'] if 'value' in content['eventDetail'] else None
 	reply_type = content['findAction']['value']
 	#print(reply_type)
-	search_event = Event(date=date, time=time, event_detail=detail)
-	find = Find(db=db, jdID=jdID, event=search_event, nearest=nearest)
+	event = Event(db=db, jdID=jdID, year=year, month=month, 
+		day=day, hour=hour, minute=minute, detail=detail, event_detail=detail)
+	find = Find(db=db, jdID=jdID, event=event, nearest=nearest)
 	rst = find.find()
 	return rst
 
@@ -120,7 +121,6 @@ def suggest(jdID, db):
 
 
 def update(jdID, content):
-	print(content)
 	time1, time2 = content['originalStartTime']['value'], content['changeStartTime']['value']
 	date1, date2 = content['originalDate']['value'], content['newDate']['value']
 	event1, event2 = content['originalEvent']['value'], content['changeEvent']['value']
@@ -134,6 +134,24 @@ def update(jdID, content):
 	rst = update.update()
 
 	return rst
+
+
+def get_properties(date=None, time=None, duration=None, detail=None):
+	date = date['value'].split('-') if 'value' in date else None
+	time = time['value'].split(':') if 'value' in time else None
+	detail = detail['value'] if 'value' in detail else None
+	duration = duration['value'] if 'value' in duration else None
+	if date is not None:
+		year, month, day = date[0], date[1], date[2]
+	else:
+		year, month, day = None, None, None
+
+	if time is not None:
+		hour, minute = time[0], time[1]
+	else:
+		hour, minute = None, None
+
+	return int(year), int(month), int(day), int(hour), int(minute), duration, detail
 
 
 def postResponse(rst):

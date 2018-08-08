@@ -1,12 +1,12 @@
 from datetime import datetime, timedelta
 from agenda import Agenda
-from queriedevent import QueriedEvent
 from sqlalchemy import extract, and_
 import re, random
 
 class Event(object):
-	def __init__(self, db=None, sessID=None, jdID=None, date=None, time=None, duration=None, 
-		event_type=None, event_detail=None, nearest=None, isAdd=False):
+	def __init__(self, db=None, sessID=None, jdID=None, year=None, month=None, day=None,
+	 hour=None, minute=None, duration=None, event_type=None, event_detail=None, 
+	 nearest=None, isAdd=False):
 
 		self.exclusion = ['所有计划', '忽略此项', '事务', '原始']
 
@@ -15,39 +15,28 @@ class Event(object):
 		self.sessID = sessID
 		self.jdID = jdID
 
-		self.date = date
-		self.time = time
 		self.duration = duration
 		self.event_type = event_type
 		self.event_detail = event_detail if event_detail not in self.exclusion else None
 
-		self.year = None
-		self.month = None
-		self.day = None
-		self.hour = None
-		self.minute = None
+		self.year = year
+		self.month = month
+		self.day = day
+		self.hour = hour
+		self.minute = minute
 
 		self.end_datetime = None
 		self.start_datetime = None
 
 		self.isAdd = isAdd
 
-		if date is not None:
+		if day is not None:
 			self.__get_datetime()
 
 	def __get_datetime(self):
 
-		date = self.date.split('-')
-		self.year = int(date[0])
-		self.month = int(date[1])
-		self.day = int(date[2])
-
-		if self.time is not None:
-			time = self.time.split(':')
-			self.hour = int(time[0])
-			self.minute = int(time[1])
-		else:
-			self.hour, self.minute = 0, 0
+		self.hour = self.hour if self.hour is not None else 0
+		self.minute = self.minute if self.minute is not None else 0
 
 		self.start_datetime = datetime(self.year, self.month, 
 			self.day, self.hour, self.minute, 0)
@@ -73,13 +62,6 @@ class Event(object):
 			self.end_datetime = self.start_datetime + self.duration
 
 
-	def __log_error(self, err):
-		f = open('err', 'a')
-		f.write(str(err))
-		f.write('\n')
-		f.write('\n')
-		f.close()
-
 	def get_diff_between_now_start(self):
 		now = datetime.now()
 		rst = self.start_datetime - now
@@ -90,78 +72,177 @@ class Event(object):
 		rst = self.end_datetime - now
 		return rst
 
-	def get_add_pastevent_error(self):
-		error = ["您的行程本只能协助您规划未来的计划，并不支持记录以往的事务哈", 
-		"出错了哦，您要添加的计划已经是过去时了", "出错了哦，过去的计划您也加，我都傻傻分不清楚了"]
-		num = random.randrange(0, len(error), 1)
-		return error[num]
 
+	# def delete_events(self):
+	# 	record = []
+	# 	# if self.event_detail == '所有计划':
+	# 	# 	events = self.db.session.query(Agenda).filter(and_(Agenda.jdID==self.jdID, 
+	# 	# 		extract('year', Agenda.startTime) == self.year, extract('month', Agenda.startTime) == self.month, 
+	# 	# 		extract('day', Agenda.startTime) == self.day)).all()
+	# 	elif self.time == None:
+	# 		events = self.db.session.query(Agenda).filter(and_( Agenda.jdID==self.jdID, extract('year', Agenda.startTime) == self.year, 
+	# 			extract('month', Agenda.startTime) == self.month, extract('day', Agenda.startTime) == self.day, 
+	# 			Agenda.agendaDetail == self.event_detail)).all()
+	# 	else:
+	# 		events = self.db.session.query(Agenda).filter(and_(Agenda.jdID==self.jdID, extract('year', Agenda.startTime) == self.year,
+	# 			extract('month', Agenda.startTime) == self.month,extract('day', Agenda.startTime) == self.day, 
+	# 			extract('hour', Agenda.startTime) == self.hour,  
+	# 			extract('minute', Agenda.startTime) == self.minute)).all()
+	# 	if not events:
+	# 		rst = '没有找到您需要删除的这条计划，请回复查找或添加来查询或添加这条计划'
+	# 		return rst
 
-	def add_event(self):
-		if (self.event_detail in self.exclusion):
-			rst = '您计划的具体内容有点奇怪，添加失败了。'
-			return rst
+	# 	try:
+	# 		for item in events:
+	# 			self.db.session.delete(item)
+	# 			record.append(item)
+	# 		self.db.session.commit()
 
-		agenda = Agenda(sessID=self.sessID, jdID=self.jdID, 
-			agendaType=self.event_type, startTime=self.start_datetime, 
-			endTime=self.end_datetime, agendaDetail=self.event_detail)
+	# 	except Exception as err:
+	# 		self.__log_error(err)
+	# 		rst = "抱歉...您的规划本出了点小问题，计划删除失败了..."
+	# 		return rst
 
-		try:
-			self.db.session.add(agenda)
-			self.db.session.commit()
-		except Exception as err:
-			self.__log_error(err)
-			rst = "您的规划本出了点小问题，这条计划添加失败了..."
-			return rst
+	# 	rst = '已经帮您删除这' + str(len(record)) + '条计划：'
+	# 	for e in record:
+	# 		minute = '' if e.startminute() == 0 else str(e.startminute()) + '分'
+	# 		rst += str(e.startyear()) + '年' + str(e.startmonth()) + '月' + str(e.startday()) + '号' + str(e.starthour()) + '点' + minute +'的' + e.detail() + '计划，'
 
-		rst = "已成功帮您添加了这条计划，感谢您的使用哈"
-		return rst
+	# 	rst += '感谢您的使用！'
+	# 	return rst
 
+	def time_des_gen(self, start=True):
+		_hour = self.start_datetime.hour if start is True else self.end_datetime.hour
+		_minute = self.start_datetime.minute if start is True else self.end_datetime.minute
 
-	def delete_events(self):
-		record = []
-		if self.event_detail == '所有计划':
-			events = self.db.session.query(Agenda).filter(and_(Agenda.jdID==self.jdID, 
-				extract('year', Agenda.startTime) == self.year, extract('month', Agenda.startTime) == self.month, 
-				extract('day', Agenda.startTime) == self.day)).all()
-		elif self.time == None:
-			events = self.db.session.query(Agenda).filter(and_( Agenda.jdID==self.jdID, extract('year', Agenda.startTime) == self.year, 
-				extract('month', Agenda.startTime) == self.month, extract('day', Agenda.startTime) == self.day, 
-				Agenda.agendaDetail == self.event_detail)).all()
+		if _hour is None and _minute is None:
+			return ''
+
+		if _hour < 12:
+			phrase = "早上"
+		elif _hour == 12 and _minute == 0:
+			phrase = "中午"
+		elif 12 < _hour < 18:
+			_hour = _hour - 12
+			phrase = "下午"
 		else:
-			events = self.db.session.query(Agenda).filter(and_(Agenda.jdID==self.jdID, extract('year', Agenda.startTime) == self.year,
-				extract('month', Agenda.startTime) == self.month,extract('day', Agenda.startTime) == self.day, 
-				extract('hour', Agenda.startTime) == self.hour,  
-				extract('minute', Agenda.startTime) == self.minute)).all()
-		if not events:
-			rst = '没有找到您需要删除的这条计划，请回复查找或添加来查询或添加这条计划'
-			return rst
+			_hour = _hour - 12
+			phrase = "晚上"
 
-		try:
-			for item in events:
-				self.db.session.delete(item)
-				record.append(item)
-			self.db.session.commit()
+		if _minute is not None:
+			hour_ending = "点" if _minute == 0 else "点" + str(_minute) + "分"
+		else:
+			hour_ending = ''
 
-		except Exception as err:
-			self.__log_error(err)
-			rst = "抱歉...您的规划本出了点小问题，计划删除失败了..."
-			return rst
-
-		rst = '已经帮您删除这' + str(len(record)) + '条计划：'
-		for e in record:
-			minute = '' if e.startminute() == 0 else str(e.startminute()) + '分'
-			rst += str(e.startyear()) + '年' + str(e.startmonth()) + '月' + str(e.startday()) + '号' + str(e.starthour()) + '点' + minute +'的' + e.detail() + '计划，'
-
-		rst += '感谢您的使用！'
-		return rst
+		return phrase + str(_hour) + hour_ending
 
 
-	def get_date(self):
-		return self.date
+	def day_des_gen(self, start=True):
+		now = datetime.now()
 
-	def get_time(self):
-		return self.time
+		_year = self.start_datetime.year if start is True else self.end_datetime.year
+		_month = self.start_datetime.month if start is True else self.end_datetime.month
+		_day = self.start_datetime.day if start is True else self.end_datetime.day
+
+		year_diff = _year - now.year
+		month_diff = _month - now.month
+		day_diff = _day - now.day
+
+		day = ''
+
+		if year_diff == 0:
+			year = ''
+		elif year_diff == 1:
+			year = '明年'
+		else:
+			year = str(_year) + '年'
+
+		if (year_diff == 0) & (month_diff == 0) & (day_diff > 2) & start is True:
+			month = '这个月'
+		elif (year_diff == 0) & (month_diff == 0) & (day_diff < 2):
+			month = ''
+		elif (year_diff == 0) & (month_diff == 1):
+			month = '下个月'
+		else:
+			month = str(_month) + '月'
+
+		if (year_diff ==0) & (month_diff == 0) & (day_diff == 0):
+			day = '今天'
+		elif (year_diff == 0) & (month_diff == 0) & (day_diff == 1):
+			day = '明天'
+		elif (year_diff == 0) & (month_diff == 0) & (day_diff == 2):
+			day = '后天'
+		else:
+			day = str(_day) + '号'
+
+		return year + month + day
+
+
+	def duration_des_gen(self):
+		diffDay = self.duration.days
+		diffSeconds = self.duration.seconds
+
+		year = 0
+		month = 0
+		phrase = ''
+		if diffDay >= 365:
+			year = diffDay/365
+			diffDay = diffDay%365
+			phrase = str(int(year)) + '年'
+		if diffDay >= 30:
+			month = diffDay/30
+			diffDay = diffDay%30
+			phrase += str(int(month)) + '月'
+		if diffDay >= 1:
+			phrase += str(int(diffDay)) + '天'
+		if year >= 1 or month >= 1 or diffDay >= 1:
+			return phrase + '左右'
+
+		if diffSeconds>= 3600:
+			hour = diffSeconds/3600
+			diffSeconds = diffSeconds%3600
+			phrase = str(int(hour)) + '小时'
+		if diffSeconds >= 60:
+			minute = diffSeconds/60
+			phrase += str(int(minute)) + '分钟'
+
+		return phrase
+
+
+	def __get_tense(self):
+		if self.is_future() is True:
+			tense_verb = "将持续"
+			yuji_verb = '预计'
+			tense_guo = ''
+		else:
+			tense_verb = "已经花费了"
+			yuji_verb = ''
+			tense_guo = '过'
+
+		return tense_verb, tense_guo, yuji_verb
+
+
+	def get_des(self, anstype=None):
+		duration = self.duration_des_gen()
+		tense_verb, tense_guo, yuji_verb = self.__get_tense()
+		phrase = ''
+
+		if anstype == '有什么事要做':
+			phrase += self.time_des_gen(start=True)
+			phrase += '您有' + tense_guo + '一条为时' + duration + '的' + self.detail + '计划。'
+
+		else:
+			phrase += self.day_des_gen(start=True) + self.time_des_gen(start=True) + '，'
+			phrase += '您有'  + tense_guo + '一条关于' + self.detail +  '的计划，'
+			if duration != 0:
+				phrase += '此计划' + tense_verb  + duration + '，'
+				phrase += yuji_verb + '结束时间为' + self.day_des_gen(start=False) + self.time_des_gen(start=False) + '。 '
+			else:
+				phrase += '只是您并没有记录' + self.detail + '要花费多长时间。' 
+		return phrase
+
+	def get_startime(self):
+		return self.start_datetime
 
 	def get_year(self):
 		return int(self.year)
@@ -181,9 +262,14 @@ class Event(object):
 	def get_startime(self):
 		return self.start_datetime
 
+	def get_endtime(self):
+		return self.end_datetime
+
 	def get_duration(self):
 		return self.duration
 
+	def get_sessID(self):
+		return self.sessID
 
 	def get_detail(self):
 		return self.event_detail

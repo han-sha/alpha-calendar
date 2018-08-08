@@ -1,6 +1,5 @@
 from datetime import datetime
 from agenda import Agenda
-from queriedevent import QueriedEvent
 from jdcommodity import JDCommodity
 import random
 
@@ -85,7 +84,7 @@ class Suggestion(object):
 		self.__populate_dict()
 
 		num = random.randrange(0, len(self.events), 1)
-		self.eventdetail = Event(self.events[num]).get_detail()
+		self.eventdetail = self.events[num][3]
 		self.keyword = self.eventdict[self.eventdetail]
 		self.search = self.keywordict[self.keyword]
 

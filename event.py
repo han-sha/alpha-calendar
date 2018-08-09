@@ -1,16 +1,13 @@
 from datetime import datetime, timedelta
-from agenda import Agenda
 from sqlalchemy import extract, and_
 import re, random
 
 class Event(object):
-	def __init__(self, db=None, sessID=None, jdID=None, year=None, month=None, day=None,
+	def __init__(self, sessID=None, jdID=None, year=None, month=None, day=None,
 	 hour=None, minute=None, duration=None, event_type=None, event_detail=None, 
-	 nearest=None, isAdd=False):
+	 nearest=None, isUpdate=False):
 
 		self.exclusion = ['所有计划', '忽略此项', '事务', '原始']
-
-		self.db = db
 
 		self.sessID = sessID
 		self.jdID = jdID
@@ -28,7 +25,7 @@ class Event(object):
 		self.end_datetime = None
 		self.start_datetime = None
 
-		self.isAdd = isAdd
+		self.isUpdate = isUpdate
 		self.weekday = {}
 
 		if day is not None:
@@ -36,7 +33,9 @@ class Event(object):
 			self.__get_weekday()
 
 	def __get_datetime(self):
-
+		if self.isUpdate is True and self.hour is None:
+			return
+			
 		hour = self.hour if self.hour is not None else 0
 		minute = self.minute if self.minute is not None else 0
 
@@ -50,7 +49,7 @@ class Event(object):
 	def __calc_endtime(self):
 		if type(self.duration).__name__ == 'timedelta':
 			self.end_datetime = self.start_datetime + self.duration
-		else:
+		elif self.duration is not None:
 			dur_week = re.findall(r'(\d+)W', self.duration)
 			dur_day = re.findall(r'(\d+)D', self.duration)
 			dur_hour = re.findall(r'(\d+)H', self.duration)
@@ -218,7 +217,7 @@ class Event(object):
 
 		else:
 			phrase += self.day_des_gen(start=True) + self.time_des_gen(start=True) + '，'
-			phrase += '您有'  + tense_guo + '一条关于' + self.event_detail +  '的计划，'
+			phrase += '您有'  + tense_guo + '一条' + self.event_detail +  '计划，'
 			if duration != 0:
 				phrase += '此计划' + tense_verb  + duration + '，'
 				phrase += yuji_verb + '结束时间为' + self.day_des_gen(start=False) + self.time_des_gen(start=False) + '。 '

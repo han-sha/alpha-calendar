@@ -10,11 +10,13 @@ class Find(object):
 		self.jdID = jdID
 		self.e = event
 		self.nearest = nearest
+		self.approximate = ['预计需要', '大概要', '预计会占用您']
 
 		self.key = []
 
 		if self.e.get_detail() is not None:
 			self.__key_gen()
+
 
 	def find(self):
 		if self.e.get_detail() is not None:
@@ -67,7 +69,7 @@ class Find(object):
 	 day=None, hour=None, minute=None, detail=None):
 		year, month, day, hour, minute, detail = year, month, day, hour, minute, detail
 		if hour is None:
-			event = self.db.session.query(Agenda.startTime, Agenda.endTime, Agenda.agendaDetail).filter(
+			event = self.db.session.query(Agenda).filter(
 				and_(Agenda.jdID==self.jdID,
 				extract('year', Agenda.startTime) == year,
 				extract('month', Agenda.startTime) == month,
@@ -78,13 +80,11 @@ class Find(object):
 				rst = '您并没有在' + self.e.day_des_gen() + \
 				'安排' + detail + '计划呢。' + ending
 			else:
-				a = Event(year=event[0].year, month=event[0].month, day=event[0].day, \
-					hour=event[0].hour, minute=event[0].minute, duration=event[1]-event[0])
-
+				a = event.make_event()
 				rst = '您在' + a.day_des_gen() + a.time_des_gen() + '有安排' + \
 				detail + '计划。该计划预计需要' + a.duration_des_gen() + '。请问您还需要查什么呢？'
 		else:
-			event = self.db.session.query(Agenda.startTime, Agenda.endTime, Agenda.agendaDetail).filter(
+			event = self.db.session.query(Agenda).filter(
 				and_(Agenda.jdID==self.jdID,
 				extract('year', Agenda.startTime) == year,
 				extract('month', Agenda.startTime) == month,
@@ -99,10 +99,7 @@ class Find(object):
 			else:
 				opening = ['确实有这个计划噢。', '有的噢。', '您没有记错，确实有这个计划呢。']
 				n = random.randrange(0, len(opening), 1)
-
-				a = Event(year=event[0].year, month=event[0].month, day=event[0].day, \
-					hour=event[0].hour, minute=event[0].minute, duration=event[1]-event[0])
-
+				a = event.make_event()
 				rst = opening[n] + '该计划预计需要' + a.duration_des_gen() + '，结束时间大概在' + \
 				a.time_des_gen() + '左右。请问我还可以帮您查什么？'
 		return rst
@@ -110,8 +107,7 @@ class Find(object):
 
 	def __find_next(self):
 		detail = self.e.get_detail()
-		query = self.db.session.query(
-			Agenda.startTime, Agenda.endTime, Agenda.agendaDetail).filter(and_(
+		query = self.db.session.query(Agenda).filter(and_(
 				Agenda.jdID==self.jdID,
 				Agenda.agendaDetail == detail,
 				Agenda.startTime >= datetime.now()))
@@ -123,14 +119,10 @@ class Find(object):
 			'如需取消安排，请回复删除下一次的' + detail + '计划或者修改下一次的' + detail + '计划。',
 			'感谢您的使用，祝您一切顺意。']
 			n = random.randrange(0, len(ending), 1)
-			
-			a = Event(year=event[0].year, month=event[0].month, day=event[0].day, \
-					hour=event[0].hour, minute=event[0].minute, duration=event[1]-event[0])
-
+			a = event.make_event()
 			rst = '您下一次的' + detail + '计划是在' + a.day_des_gen() + a.time_des_gen() + ',' + \
 			'预计需要' + a.duration_des_gen() + '。' + ending[n]
 		return rst
-
 
 
 	def __find_event(self, year=None, month=None, day=None, hour=None, minute=None):
@@ -157,11 +149,7 @@ class Find(object):
 
 		else:
 			for e in events:
-				year, month, day, hour, minute, duration, detail = \
-				e.startyear(), e.startmonth(), e.startday(), e.starthour(), \
-				e.startminute(), e.duration(), e.detail()
-				a = Event(year=year, month=month, day=day, 
-					hour=hour, minute=minute, duration=duration, event_detail=detail)
+				a = e.make_event()
 				rst += a.get_des()
 
 		return rst
@@ -186,20 +174,20 @@ class Find(object):
 		else:
 			rst = '在未来的三天里，您安排了这些事儿：'
 			for e in events:
+				n = random.randrange(0, len(self.approximate), 1)
 				year, month, day, hour, minute, duration, detail = \
 				e.startyear(), e.startmonth(), e.startday(), e.starthour(), \
 				e.startminute(), e.duration(), e.detail()
 				a = Event(year=year, month=month, day=day, 
 					hour=hour, minute=minute, duration=duration, event_detail=detail)
-				rst += a.day_des_gen() + a.time_des_gen() + '开始预计需要' + a.duration_des_gen()\
-				+ '的' + a.get_detail() + '计划。'
+				rst += a.day_des_gen() + a.time_des_gen() + '的' + a.get_detail() + '计划，' + \
+				self.approximate[n] + a.duration_des_gen()
 		return rst
 
 
 	def __find_all_detail(self):
 		detail = self.e.get_detail()
-		query = self.db.session.query(
-			Agenda.startTime, Agenda.endTime, Agenda.agendaDetail).filter(and_(
+		query = self.db.session.query(Agenda).filter(and_(
 				Agenda.jdID==self.jdID,
 				Agenda.agendaDetail == detail,
 				Agenda.startTime >= datetime.now()))
@@ -207,18 +195,15 @@ class Find(object):
 		if event is None:
 			rst = '您还没有安排任何' + detail + '计划哟。您可以回复添加计划来进行规划。'
 		else:
-			ending = ['可不要忘了噢！', 
-			'如果对这些功能不满意，您可以使用删除或者修改功能来重新安排。',
+			ending = ['可不要忘了噢！', '如果对这些功能不满意，您可以使用删除或者修改功能来重新安排。',
 			'感谢您的使用，祝您一切顺意。']
-			approximate = ['预计需要', '大概要', '已安排了']
 			n = random.randrange(0, len(ending), 1)
 			rst = '一共帮您查到' + str(len(event)) + '条' + detail + '的计划。'
 			for e in event:
-				a = Event(year=e[0].year, month=e[0].month, day=e[0].day, \
-						hour=e[0].hour, minute=e[0].minute, duration=e[1]-e[0])
-				i = random.randrange(0, len(approximate), 1)
+				a = e.make_event()
+				i = random.randrange(0, len(self.approximate), 1)
 				rst += a.day_des_gen() + a.time_des_gen() + '的' + detail + '，' + \
-				approximate[i] + a.duration_des_gen() + '。' 
+				self.approximate[i] + a.duration_des_gen() + '。' 
 			rst += ending[n]
 		return rst
 
@@ -229,9 +214,7 @@ class Find(object):
 			rst = "不好意思哈，您的规划本只保存过去一星期内的记录。超过一星期的已经被自动删除了哟"
 			return rst 
 
-		year = self.e.get_year()
-		month = self.e.get_month()
-		day = self.e.get_day()
+		year, month, day = self.e.get_year(), self.e.get_month(), self.e.get_day()
 
 		query = self.db.session.query(Agenda).filter(and_(
 				Agenda.jdID==self.jdID, 
@@ -251,12 +234,6 @@ class Find(object):
 				rst = "这天的" if anstype == '有什么事要做' \
 				else "在未来的这天里，您规划了" + str(n) + "条事项："
 			for e in events:
-				year, month, day, hour, minute, duration, detail = \
-				e.startyear(), e.startmonth(), e.startday(), e.starthour(), \
-				e.startminute(), e.duration(), e.detail()
-
-				a = Event(year=year, month=month, day=day, 
-					hour=hour, minute=minute, duration=duration, event_detail=detail)
-				print(a.get_endtime())
+				a = e.make_event()
 				rst += a.get_des()
 		return rst

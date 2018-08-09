@@ -9,6 +9,7 @@ from event import Event
 from find import Find
 from delete import Delete
 from add import Add
+from update import Update
 from suggestion import Suggestion
 
 from agenda import Agenda, db
@@ -80,7 +81,7 @@ def add(sessID, jdID, content):
 	get_properties(date=date, time=time, duration=duration, detail=detail)
 
 	event = Event(sessID=sessID, jdID=jdID, year=year, month=month, 
-		day=day,hour=hour, minute=minute, duration=duration, event_detail=detail, isAdd=True)
+		day=day,hour=hour, minute=minute, duration=duration, event_detail=detail)
 
 	add = Add(db=db, jdID=jdID, event=event)
 	rst = add.add()
@@ -93,7 +94,7 @@ def delete(jdID, content):
 
 	nearest = True if 'value' in content['nearest'] else False
 	cmd = detail if nearest is False else '最近一次'
-	event = Event(db=db, jdID=jdID, year=year, month=month, 
+	event = Event(jdID=jdID, year=year, month=month, 
 		day=day, hour=hour, minute=minute, event_detail=detail)
 
 	delete = Delete(db=db, jdID=jdID, event=event, cmd=cmd) if hour is not None else \
@@ -111,7 +112,7 @@ def find(jdID, content):
 	nearest = True if 'value' in content['nearest'] else False
 	reply_type = content['findAction']['value']
 
-	event = Event(db=db, jdID=jdID, year=year, month=month, 
+	event = Event(jdID=jdID, year=year, month=month, 
 		day=day, hour=hour, minute=minute, event_detail=detail)
 	find = Find(db=db, jdID=jdID, event=event, nearest=nearest)
 	rst = find.find()
@@ -126,14 +127,25 @@ def suggest(jdID, db):
 
 
 def update(jdID, content):
-	time1, time2 = content['originalStartTime']['value'], content['changeStartTime']['value']
-	date1, date2 = content['originalDate']['value'], content['newDate']['value']
-	event1, event2 = content['originalEvent']['value'], content['changeEvent']['value']
-	event2 = event1 if event2 == '原始' else event2
-	duration2 = content['changeDuration']['value']
+	time1, date1, detail1 = content['originalStartTime'], content['originalDate'], content['originalEvent']
+	time2, date2, detail2 = content['changeStartTime'], content['newDate'], content['changeEvent']
+	year1, month1, day1, hour1, minute1, __, detail1 = get_properties(date=date1, time=time1, detail=detail1)
+	year2, month2, day2, hour2, minute2, __, detail2 = get_properties(date=date2, time=time2, detail=detail2)
 
-	e1 = Event(date=date1, time=time1, event_detail=event1)
-	e2 = Event(date=date2, time=time2, duration=duration2, event_detail=event2, isAdd=True)
+	detail2 = detail1 if detail2 is None else detail2
+	hour2 = hour1 if hour2 is None else hour2
+	minute2 = minute1 if minute2 is None else minute2
+	duration2 = content['changeDuration']['value'] if 'value' in content['changeDuration'] else None
+
+	e1 = Event(jdID=jdID, year=year1, month=month1, 
+		day=day1, hour=hour1, minute=minute1, isUpdate=True,
+		event_detail=detail1)
+
+	
+	e2 = Event(jdID=jdID, year=year2, month=month2, 
+		day=day2, hour=hour2, minute=minute2, isUpdate=True, 
+		duration=duration2, event_detail=detail2)
+
 
 	update = Update(db=db, jdID=jdID, old_event=e1, new_event=e2)
 	rst = update.update()

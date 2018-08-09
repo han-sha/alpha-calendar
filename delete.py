@@ -41,8 +41,7 @@ class Delete(object):
 				extract('minute', Agenda.startTime) == self.minute)).all()
 		rst, des = '', ''
 		for e in events:
-			a = Event(year=e.startyear(), month=e.startmonth(), day=e.startday(),
-				hour=e.starthour(), minute=e.startminute(), detail=e.detail())
+			a = e.make_event()
 			des += a.day_des_gen() + a.time_des_gen() + '的' + a.get_detail() + '。'
 			if e.detail() == self.detail:
 				try:
@@ -129,11 +128,8 @@ class Delete(object):
 
 		rst = '已经帮您删除' + str(len(record)) + '条计划了哟。这些计划是：'
 		for e in record:
-			year, month, day, hour, minute, detail = \
-			e.startyear(), e.startmonth(), e.startday(), e.starthour(), e.startminute(), e.detail()
-			event = Event(jdID=self.jdID, year=year, month=month, day=day,
-				hour=hour, minute=minute, event_detail=detail)
-			rst += event.day_des_gen() + event.time_des_gen() + detail + '计划。'
+			a = e.make_event()
+			rst += a.day_des_gen() + a.time_des_gen() + detail + '计划。'
 
 		rst += '感谢您的使用！'
 		return rst

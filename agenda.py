@@ -1,4 +1,5 @@
 
+from event import Event
 from flask_sqlalchemy import SQLAlchemy
 import test
 
@@ -6,6 +7,7 @@ db = SQLAlchemy()
 
 class Agenda(db.Model):
 	__tablename__='JDSMARTAGENDA'
+
 	sessID = db.Column(db.String(63), unique=True, nullable=False, primary_key=True)
 	jdID = db.Column(db.String(63), nullable=False)
 	startTime = db.Column(db.DateTime, nullable=False)
@@ -41,3 +43,13 @@ class Agenda(db.Model):
 
 	def detail(self):
 		return self.agendaDetail
+
+	def make_event(self):
+		year, month, day, hour, minute, detail = \
+				self.startTime.year, self.startTime.month, self.startTime.day, \
+				self.startTime.hour, self.startTime.minute, self.agendaDetail
+
+		duration = self.endTime - self.startTime
+		event = Event(jdID=self.jdID, year=year, month=month, day=day,
+			hour=hour, minute=minute, duration=duration, event_detail=detail)
+		return event

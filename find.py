@@ -1,6 +1,7 @@
 from datetime import datetime
+from event import Event
 from agenda import Agenda
-from sqlalchemy import extract, and_
+from sqlalchemy import extract, and_, desc
 import random
 
 class Find(object):
@@ -25,7 +26,7 @@ class Find(object):
 		return rst
 
 
-	def __key_gen():
+	def __key_gen(self):
 		f = open('detail', 'r')
 		lines = f.readlines()
 		for l in lines:
@@ -43,6 +44,7 @@ class Find(object):
 		year, month, day, hour, minute, detail = \
 		self.e.get_year(), self.e.get_month(), self.e.get_day(), \
 		self.e.get_hour(), self.e.get_minute(), self.e.get_detail()
+
 		nearest = self.nearest
 
 		if year is None and hour is None and detail is None:
@@ -51,6 +53,8 @@ class Find(object):
 			rst = self.__find_all()
 		elif year is None and hour is None and nearest is True:
 			rst = self.__find_next()
+		elif year is None and hour is None and nearest is False:
+			rst = self.__find_all_detail()
 		elif detail is None:
 			rst = self.__find_event(year=year, month=month, day=day)
 		else:
@@ -105,11 +109,14 @@ class Find(object):
 
 
 	def __find_next(self):
+		print('im here')
 		detail = self.e.get_detail()
-		event = self.db.session.query(
+		query = self.db.session.query(
 			Agenda.startTime, Agenda.endTime, Agenda.agendaDetail).filter(and_(
 				Agenda.jdID==self.jdID,
-				Agenda.agendaDetail == detail)).first()
+				Agenda.agendaDetail == detail,
+				Agenda.startTime >= datetime.now()))
+		event = query.order_by(Agenda.startTime).first()
 		if event is None:
 			rst = '您还没有安排下次的' + detail + '计划哟。您可以回复添加计划来规划下一次的' + detail + '。'
 		else:
@@ -121,7 +128,7 @@ class Find(object):
 			a = Event(year=event[0].year, month=event[0].month, day=event[0].day, \
 					hour=event[0].hour, minute=event[0].minute, duration=event[1]-event[0])
 
-			rst = '您下一次的' + detail + '是在' + a.day_des_gen() + a.time_des_gen() + ',' + \
+			rst = '您下一次的' + detail + '计划是在' + a.day_des_gen() + a.time_des_gen() + ',' + \
 			'预计需要' + a.duration_des_gen() + '。' + ending[n]
 		return rst
 
@@ -134,15 +141,16 @@ class Find(object):
 
 		_hour, _minute = hour, minute
 
-		events = self.db.session.query(
+		query = self.db.session.query(
 			Agenda.startTime, Agenda.endTime, Agenda.agendaDetail).filter(and_(
 				Agenda.jdID==self.jdID, 
 				extract('year', Agenda.startTime) == _year,
 				extract('month', Agenda.startTime) == _month,
 				extract('day', Agenda.startTime) == _day,
 				extract('hour', Agenda.startTime) == _hour,
-				extract('minute', Agenda.startTime == _minute))).all()
+				extract('minute', Agenda.startTime == _minute)))
 		minute = '' if minute == 0 else str(minute) + '分'
+		events = query.order_by(Agenda.startTime).all()
 		if len(events) == 0:
 			pos = '今天' + str(hour) + '点，' if date is None else \
 			self.e.day_des_gen(start=True) + self.e.time_des_gen(start=True)
@@ -168,6 +176,31 @@ class Find(object):
 		n = random.randrange(0, len(phrase), 1)
 		return phrase[n]
 
+	def __find_all_detail(self):
+		detail = self.e.get_detail()
+		query = self.db.session.query(
+			Agenda.startTime, Agenda.endTime, Agenda.agendaDetail).filter(and_(
+				Agenda.jdID==self.jdID,
+				Agenda.agendaDetail == detail,
+				Agenda.startTime >= datetime.now()))
+		event = query.order_by(Agenda.startTime).all()
+		if event is None:
+			rst = '您还没有安排任何' + detail + '计划哟。您可以回复添加计划来进行规划。'
+		else:
+			ending = ['可不要忘了噢！', 
+			'如果对这些功能不满意，您可以使用删除或者修改功能来重新安排。',
+			'感谢您的使用，祝您一切顺意。']
+			approximate = ['预计需要', '大概要', '已安排了']
+			n = random.randrange(0, len(ending), 1)
+			rst = '一共帮您查到' + str(len(event)) + '条' + detail + '的计划。'
+			for e in event:
+				a = Event(year=e[0].year, month=e[0].month, day=e[0].day, \
+						hour=e[0].hour, minute=e[0].minute, duration=e[1]-e[0])
+				i = random.randrange(0, len(approximate), 1)
+				rst += a.day_des_gen() + a.time_des_gen() + '的' + detail + '，' + \
+				approximate[i] + a.duration_des_gen() + '。' 
+			rst += ending[n]
+		return rst
 
 	def __find_all(self, anstype=None):
 		diff = self.e.get_diff_between_now_start()
@@ -179,15 +212,14 @@ class Find(object):
 		month = self.e.get_month()
 		day = self.e.get_day()
 
-		events = self.db.session.query(
-			Agenda.startTime, Agenda.endTime, Agenda.agendaType, Agenda.agendaDetail).filter(and_(
+		query = self.db.session.query(Agenda).filter(and_(
 				Agenda.jdID==self.jdID, 
 				extract('year', Agenda.startTime) == year,
 				extract('month', Agenda.startTime) == month,
-				extract('day', Agenda.startTime) == day)).all()
-
+				extract('day', Agenda.startTime) == day))
+		events = query.order_by(Agenda.startTime).all()
 		if len(events) == 0:
-			rst = "您的行程本还没有记录这天的任何计划哈"
+			rst = '您的行程本还没有记录' + self.e.day_des_gen(start=True) + '的任何计划哈'
 			return rst
 		else:
 			n = len(events)
@@ -201,7 +233,9 @@ class Find(object):
 				year, month, day, hour, minute, duration, detail = \
 				e.startyear(), e.startmonth(), e.startday(), e.starthour(), \
 				e.startminute(), e.duration(), e.detail()
+
 				a = Event(year=year, month=month, day=day, 
 					hour=hour, minute=minute, duration=duration, event_detail=detail)
+				print(a.get_endtime())
 				rst += a.get_des()
 		return rst

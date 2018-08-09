@@ -18,23 +18,71 @@ class Delete(object):
 
 
 	def __which_delete(self):
-		if self.cmd == '所有计划':
+		if self.year is not None and self.cmd == '所有计划':
+			rst = self.__delete_day()
+		elif self.year is None and self.cmd == '所有计划':
 			rst = self.__delete_all()
-		elif self.cmd == '下一次':
+		elif self.cmd == '最近一次':
 			rst = self.__delete_next()
 		else:
 			rst = self.__delete_one()
 		return rst
 
 
+	def __delete_next(self):
+		record = None
+		event = self.db.session.query(Agenda).filter(and_(Agenda.jdID==self.jdID, 
+				Agenda.agendaDetail == self.e.event_detail())).first()
+		if not event:
+			rst = '您还没有规划关于' + self.e.event_detail() + '的计划呢。您可以回复：我要添加计划，来进行添加噢！'
+			return rst
+
+		record = year, month, day, hour, minute, detail = \
+			event.startyear(), event.startmonth(), event.startday(), \
+			event.starthour(), event.startminute(), event.detail()
+		try:
+			self.db.session.delete(event)
+			self.db.session.commit()
+
+		except Exception as err:
+			self.__log_error(err)
+			rst = "抱歉...您的规划本出了点小问题，计划删除失败了..."
+			return rst
+
+		rst = '已成功帮您删除' + record.day_des_gen() + record.time_des_gen() + \
+		'的' + self.e.event_detail() + '计划啦。请问您还需要删除什么计划吗？'
+		return rst
+
+
 	def __delete_all(self):
+		record = []
+		events = self.db.session.query(Agenda).filter(and_(Agenda.jdID==self.jdID)).all()
+		if not events:
+			rst = '您的规划本里什么计划都还没有噢。您可以回复添加计划来进行添加。'
+			return rst
+		try:
+			for item in events:
+				self.db.session.delete(item)
+				record.append(item)
+			self.db.session.commit()
+
+		except Exception as err:
+			self.__log_error(err)
+			rst = "抱歉...您的规划本出了点小问题，计划删除失败了..."
+			return rst
+
+		rst = '已经帮您删除' + str(len(record)) + '条计划了哟。您的规划本现已被清空。'
+		return rst
+
+
+
+	def __delete_day(self):
 		record = []
 		events = self.db.session.query(Agenda).filter(and_(Agenda.jdID==self.jdID, 
 				extract('year', Agenda.startTime) == self.year, extract('month', Agenda.startTime) == self.month, 
 				extract('day', Agenda.startTime) == self.day)).all()
 		if not events:
-			rst = '您还没有制定任何计划呢，可以回复添加'+ self.e.day_des_gen() + \
-			self.e.time_des_gen() + '来进行添加哈。'
+			rst = '您还没有制定'+ self.e.day_des_gen() + '的' + self.e.get_detail() + '计划呢，您可以先进行添加哈。'
 			return rst
 
 		try:
@@ -53,14 +101,11 @@ class Delete(object):
 			year, month, day, hour, minute, detail = \
 			e.startyear(), e.startmonth(), e.startday(), e.starthour(), e.startminute(), e.detail()
 			event = Event(jdID=self.jdID, year=year, month=month, day=day,
-				hour=hour, minute=minute, detail=detail)
+				hour=hour, minute=minute, event_detail=detail)
 			rst += event.day_des_gen() + event.time_des_gen() + detail + '计划。'
 
 		rst += '感谢您的使用！'
 		return rst
-
-
-	#def __delete_next(self):
 
 
 	def __log_error(self, err):

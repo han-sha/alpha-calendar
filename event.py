@@ -29,38 +29,50 @@ class Event(object):
 		self.start_datetime = None
 
 		self.isAdd = isAdd
+		self.weekday = {}
 
 		if day is not None:
 			self.__get_datetime()
+			self.__get_weekday()
 
 	def __get_datetime(self):
 
-		self.hour = self.hour if self.hour is not None else 0
-		self.minute = self.minute if self.minute is not None else 0
+		hour = self.hour if self.hour is not None else 0
+		minute = self.minute if self.minute is not None else 0
 
 		self.start_datetime = datetime(self.year, self.month, 
-			self.day, self.hour, self.minute, 0)
+			self.day, hour, minute, 0)
 
-		if self.isAdd is True:
+		if self.duration is not None:
 			self.__calc_endtime()
 
 
 	def __calc_endtime(self):
-		dur_week = re.findall(r'(\d+)W', self.duration)
-		dur_day = re.findall(r'(\d+)D', self.duration)
-		dur_hour = re.findall(r'(\d+)H', self.duration)
-		dur_min = re.findall(r'(\d+)M', self.duration)
-
-		if (not dur_week) and (not dur_day) and (not dur_hour) and (not dur_min):
-			self.end_datetime = self.start_datetime
-		else:
-			dur_week = 0 if not dur_week else int(dur_week[0])
-			dur_day = 0 if not dur_day else int(dur_day[0]) + (dur_week*7)
-			dur_hour = 0 if not dur_hour else int(dur_hour[0])
-			dur_min = 0 if not dur_min else int(dur_min[0])
-			self.duration = timedelta(days=dur_day, hours=dur_hour, minutes=dur_min)
+		if type(self.duration).__name__ == 'timedelta':
 			self.end_datetime = self.start_datetime + self.duration
+		else:
+			dur_week = re.findall(r'(\d+)W', self.duration)
+			dur_day = re.findall(r'(\d+)D', self.duration)
+			dur_hour = re.findall(r'(\d+)H', self.duration)
+			dur_min = re.findall(r'(\d+)M', self.duration)
 
+			if (not dur_week) and (not dur_day) and (not dur_hour) and (not dur_min):
+				self.end_datetime = self.start_datetime
+			else:
+				dur_week = 0 if not dur_week else int(dur_week[0])
+				dur_day = 0 if not dur_day else int(dur_day[0]) + (dur_week*7)
+				dur_hour = 0 if not dur_hour else int(dur_hour[0])
+				dur_min = 0 if not dur_min else int(dur_min[0])
+				self.duration = timedelta(days=dur_day, hours=dur_hour, minutes=dur_min)
+				self.end_datetime = self.start_datetime + self.duration
+
+
+	def __get_weekday(self):
+		f = open('weekday', 'r')
+		lines = f.readlines()
+		for l in lines:
+			l = l.rstrip().split(' ')
+			self.weekday[int(l[0])] = l[1]
 
 	def get_diff_between_now_start(self):
 		now = datetime.now()
@@ -92,24 +104,6 @@ class Event(object):
 	# 		rst = '没有找到您需要删除的这条计划，请回复查找或添加来查询或添加这条计划'
 	# 		return rst
 
-	# 	try:
-	# 		for item in events:
-	# 			self.db.session.delete(item)
-	# 			record.append(item)
-	# 		self.db.session.commit()
-
-	# 	except Exception as err:
-	# 		self.__log_error(err)
-	# 		rst = "抱歉...您的规划本出了点小问题，计划删除失败了..."
-	# 		return rst
-
-	# 	rst = '已经帮您删除这' + str(len(record)) + '条计划：'
-	# 	for e in record:
-	# 		minute = '' if e.startminute() == 0 else str(e.startminute()) + '分'
-	# 		rst += str(e.startyear()) + '年' + str(e.startmonth()) + '月' + str(e.startday()) + '号' + str(e.starthour()) + '点' + minute +'的' + e.detail() + '计划，'
-
-	# 	rst += '感谢您的使用！'
-	# 	return rst
 
 	def time_des_gen(self, start=True):
 		_hour = self.start_datetime.hour if start is True else self.end_datetime.hour
@@ -150,6 +144,17 @@ class Event(object):
 
 		day = ''
 
+		# weekday calculation
+		_now = datetime(now.year, now.month, now.day)
+		_start = datetime(_year, _month, _day)
+
+		_diff = _start - _now
+		_diff = _diff.days
+		if 2 < _diff <= (6 - _now.weekday()):
+			return '这个' + self.weekday[_start.weekday()]
+		elif 6 < _diff <= (13 - _now.weekday()):
+			return '下个' + self.weekday[_start.weekday()]
+
 		if year_diff == 0:
 			year = ''
 		elif year_diff == 1:
@@ -159,7 +164,7 @@ class Event(object):
 
 		if (year_diff == 0) & (month_diff == 0) & (day_diff > 2) & start is True:
 			month = '这个月'
-		elif (year_diff == 0) & (month_diff == 0) & (day_diff < 2):
+		elif (year_diff == 0) & (month_diff == 0) & (day_diff <= 2):
 			month = ''
 		elif (year_diff == 0) & (month_diff == 1):
 			month = '下个月'
@@ -229,43 +234,57 @@ class Event(object):
 
 		if anstype == '有什么事要做':
 			phrase += self.time_des_gen(start=True)
-			phrase += '您有' + tense_guo + '一条为时' + duration + '的' + self.detail + '计划。'
+			phrase += '您有' + tense_guo + '一条为时' + duration + '的' + self.event_detail + '计划。'
 
 		else:
 			phrase += self.day_des_gen(start=True) + self.time_des_gen(start=True) + '，'
-			phrase += '您有'  + tense_guo + '一条关于' + self.detail +  '的计划，'
+			phrase += '您有'  + tense_guo + '一条关于' + self.event_detail +  '的计划，'
 			if duration != 0:
 				phrase += '此计划' + tense_verb  + duration + '，'
 				phrase += yuji_verb + '结束时间为' + self.day_des_gen(start=False) + self.time_des_gen(start=False) + '。 '
 			else:
-				phrase += '只是您并没有记录' + self.detail + '要花费多长时间。' 
+				phrase += '只是您并没有记录' + self.event_detail + '要花费多长时间。' 
 		return phrase
 
-	def get_startime(self):
-		return self.start_datetime
 
 	def get_year(self):
+		if self.year is None:
+			return None
 		return int(self.year)
 
 	def get_month(self):
+		if self.month is None:
+			return None
 		return int(self.month)
 
 	def get_day(self):
+		if self.day is None:
+			return None
 		return int(self.day)
 
 	def get_hour(self):
+		if self.hour is None:
+			return None
 		return int(self.hour)
 
 	def get_minute(self):
+		if self.minute is None:
+			return None
 		return int(self.minute)
 
 	def get_startime(self):
+		if self.start_datetime is None:
+			return None
 		return self.start_datetime
 
 	def get_endtime(self):
+		if self.end_datetime is None:
+			return None
 		return self.end_datetime
 
 	def get_duration(self):
+		if self.duration is None:
+			return None
 		return self.duration
 
 	def get_sessID(self):

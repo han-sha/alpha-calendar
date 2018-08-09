@@ -8,7 +8,7 @@ import random
 class Add(object):
 	def __init__(self, db, jdID, event):
 
-		self.exclusion = ['所有计划', '忽略此项', '事务', '原始']
+		self.exclusion = ['所有计划', '忽略此项', '事务', '原始', None]
 
 		self.db = db
 		self.jdID = jdID

@@ -89,11 +89,16 @@ def add(sessID, jdID, content):
 
 def delete(jdID, content):
 	date, time, detail = content['deleteDate'], content['deleteStartTime'], content['deleteEvent']
-	year, month, day, hour, minute, detail = get_properties(date=date, time=time, detail=detail)
+	year, month, day, hour, minute, __, detail = get_properties(date=date, time=time, detail=detail)
 
+	nearest = True if 'value' in content['nearest'] else False
+	cmd = detail if nearest is False else '最近一次'
 	event = Event(db=db, jdID=jdID, year=year, month=month, 
-		day=day, hour=hour, minute=minute, detail=detail, event_detail=detail)
-	delete = Delete(db=db, jdID=jdID, event=event)
+		day=day, hour=hour, minute=minute, event_detail=detail)
+
+	delete = Delete(db=db, jdID=jdID, event=event, cmd=cmd) if hour is not None else \
+	Delete(db=db, jdID=jdID, event=event)
+
 	rst = delete.delete()
 
 	return rst
@@ -101,13 +106,13 @@ def delete(jdID, content):
 
 def find(jdID, content):
 	date, time, detail = content['Date'], content['alphaTime'], content['eventDetail']
-	year, month, day, hour, minute, detail = get_properties(date=date, time=time, detail=detail)
+	year, month, day, hour, minute, __, detail = get_properties(date=date, time=time, detail=detail)
 
 	nearest = True if 'value' in content['nearest'] else False
 	reply_type = content['findAction']['value']
-	#print(reply_type)
+
 	event = Event(db=db, jdID=jdID, year=year, month=month, 
-		day=day, hour=hour, minute=minute, detail=detail, event_detail=detail)
+		day=day, hour=hour, minute=minute, event_detail=detail)
 	find = Find(db=db, jdID=jdID, event=event, nearest=nearest)
 	rst = find.find()
 	return rst
@@ -137,21 +142,25 @@ def update(jdID, content):
 
 
 def get_properties(date=None, time=None, duration=None, detail=None):
-	date = date['value'].split('-') if 'value' in date else None
-	time = time['value'].split(':') if 'value' in time else None
-	detail = detail['value'] if 'value' in detail else None
-	duration = duration['value'] if 'value' in duration else None
 	if date is not None:
-		year, month, day = date[0], date[1], date[2]
+		date = date['value'].split('-') if 'value' in date else None
+	if time is not None:
+		time = time['value'].split(':') if 'value' in time else None
+	if detail is not None:
+		detail = detail['value'] if 'value' in detail else None
+	if duration is not None:
+		duration = duration['value'] if 'value' in duration else None
+	if date is not None:
+		year, month, day = int(date[0]), int(date[1]), int(date[2])
 	else:
 		year, month, day = None, None, None
 
 	if time is not None:
-		hour, minute = time[0], time[1]
+		hour, minute = int(time[0]), int(time[1])
 	else:
 		hour, minute = None, None
 
-	return int(year), int(month), int(day), int(hour), int(minute), duration, detail
+	return year, month, day, hour, minute, duration, detail
 
 
 def postResponse(rst):
@@ -161,7 +170,7 @@ def postResponse(rst):
 	res["response"]["output"] = {}
 	res["response"]["output"]["text"] = rst
 	res["response"]["output"]["type"] = "PlainText"
-	res["shouldEndSession"] = "false"
+	res["shouldEndSession"] = "true"
 	return res	
 
 def log_error(err):

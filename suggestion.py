@@ -27,7 +27,7 @@ class Suggestion(object):
 		self.keywordict = {}
 
 		self.__query_all_events()
-		self.__classify_events()
+		#self.__classify_events()
 		self.__populate_phrases()
 		
 
@@ -76,13 +76,10 @@ class Suggestion(object):
 		inum = random.randrange(0, len(self.adsIntro), 1)
 		enum = random.randrange(0, len(self.adsEnding), 1)
 		suggest = "根据您的" + self.eventdetail + "计划，" + self.adsIntro[inum] + commodity.get_info() + self.adsEnding[enum]
-		print("ads gen")
-		print(suggest)
 		return suggest
 
 	def __get_keyword(self):
 		self.__populate_dict()
-
 		num = random.randrange(0, len(self.events), 1)
 		self.eventdetail = self.events[num][3]
 		self.keyword = self.eventdict[self.eventdetail]
@@ -112,17 +109,15 @@ class Suggestion(object):
 		self.lazyEnding = ["看在我工作这么努力的份上...今儿就让我打个酱油怎样", "看来您最近安排挺多的，我就不打扰啦。",
 		"不过我今天有些懒...就不具体帮您分析了", "感谢您的使用！我也会更努力的", "遇到这么努力的您，我真的好感动呀"]
 
-		self.adsIntro = ["我向您推荐京东上的: ","我来打个软广告: ","我帮您在京东上找到: ",
-		"您可能会喜欢的: ", "我在京东上找到和"+self.keyword+"有关的: "]
+		self.adsIntro = ["我向您推荐京东上的: ","我来打个软广告: ","我在京东上找到您可能会喜欢的: ", 
+		"我在京东上找到和"+self.keyword+"有关的"]
 
-		self.adsEnding = ["说了很多，希望您不要介意。", "感谢您的宝贵时间。", "感谢您听完我的软广告。",
-		"感谢您的时间，希望您喜欢。", "希望您喜欢。"]
+		self.adsEnding = ["打了很多的软广告，希望您不要介意。", "如果您感兴趣的话，可以到京东上购买噢。感谢您的宝贵时间。", 
+		"感谢您听完我的软广告。", "感谢您的时间，希望您喜欢这则广告。"]
 
 
 	def get_suggestion(self):
 		suggest = self.__suggestion_gen()
-		print("reach the end")
-		print(suggest)
 		return suggest
 
 

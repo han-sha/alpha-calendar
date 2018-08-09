@@ -1,4 +1,4 @@
-from datetime import datetime
+from datetime import datetime, timedelta
 from event import Event
 from agenda import Agenda
 from sqlalchemy import extract, and_, desc
@@ -109,7 +109,6 @@ class Find(object):
 
 
 	def __find_next(self):
-		print('im here')
 		detail = self.e.get_detail()
 		query = self.db.session.query(
 			Agenda.startTime, Agenda.endTime, Agenda.agendaDetail).filter(and_(
@@ -169,12 +168,33 @@ class Find(object):
 
 
 	def __find_none(self):
-		phrase = ['''不是很确定您想查什么噢，给我一点线索吧。
-		比如您可以这样问：查一下我今天都有什么安排。或者，查查我今天是不是要去开会等等。''', 
-		'''请问您具体想查点什么呢？比如您可以说：我想查今天几点开会。或者您也可以问：
-		查查我今天9点是不是要去开会。''']
-		n = random.randrange(0, len(phrase), 1)
-		return phrase[n]
+		now = datetime.now()
+		year, month, day = now.year, now.month, now.day
+		_nexthreedays = datetime(year, month, day) + timedelta(4)
+		query = self.db.session.query(Agenda).filter(and_(
+			Agenda.jdID == self.jdID, 
+			Agenda.startTime >= now,
+			Agenda.startTime <= _nexthreedays))
+		events = query.order_by(Agenda.startTime).all()
+		if len(events) == 0:
+			phrase = ['''在未来三天您没有安排任何计划噢。要想查其他安排的话，请再给我一点线索吧。
+			比如您可以这样问：查下我下周五都有什么安排。或者，查查我下周五是不是要开会等等。''', 
+			'''我没有记录您未来三天的任何安排噢。请问您具体想查点什么呢？
+			比如您可以说：查下我下周五什么时候开会。或者您也可以问：查查我下周五是不是要开会。''']
+			n = random.randrange(0, len(phrase), 1)
+			return phrase[n]
+		else:
+			rst = '在未来的三天里，您安排了这些事儿：'
+			for e in events:
+				year, month, day, hour, minute, duration, detail = \
+				e.startyear(), e.startmonth(), e.startday(), e.starthour(), \
+				e.startminute(), e.duration(), e.detail()
+				a = Event(year=year, month=month, day=day, 
+					hour=hour, minute=minute, duration=duration, event_detail=detail)
+				rst += a.day_des_gen() + a.time_des_gen() + '开始预计需要' + a.duration_des_gen()\
+				+ '的' + a.get_detail() + '计划。'
+		return rst
+
 
 	def __find_all_detail(self):
 		detail = self.e.get_detail()
@@ -201,6 +221,7 @@ class Find(object):
 				approximate[i] + a.duration_des_gen() + '。' 
 			rst += ending[n]
 		return rst
+
 
 	def __find_all(self, anstype=None):
 		diff = self.e.get_diff_between_now_start()

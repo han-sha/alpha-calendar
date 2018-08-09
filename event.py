@@ -85,26 +85,6 @@ class Event(object):
 		return rst
 
 
-	# def delete_events(self):
-	# 	record = []
-	# 	# if self.event_detail == '所有计划':
-	# 	# 	events = self.db.session.query(Agenda).filter(and_(Agenda.jdID==self.jdID, 
-	# 	# 		extract('year', Agenda.startTime) == self.year, extract('month', Agenda.startTime) == self.month, 
-	# 	# 		extract('day', Agenda.startTime) == self.day)).all()
-	# 	elif self.time == None:
-	# 		events = self.db.session.query(Agenda).filter(and_( Agenda.jdID==self.jdID, extract('year', Agenda.startTime) == self.year, 
-	# 			extract('month', Agenda.startTime) == self.month, extract('day', Agenda.startTime) == self.day, 
-	# 			Agenda.agendaDetail == self.event_detail)).all()
-	# 	else:
-	# 		events = self.db.session.query(Agenda).filter(and_(Agenda.jdID==self.jdID, extract('year', Agenda.startTime) == self.year,
-	# 			extract('month', Agenda.startTime) == self.month,extract('day', Agenda.startTime) == self.day, 
-	# 			extract('hour', Agenda.startTime) == self.hour,  
-	# 			extract('minute', Agenda.startTime) == self.minute)).all()
-	# 	if not events:
-	# 		rst = '没有找到您需要删除的这条计划，请回复查找或添加来查询或添加这条计划'
-	# 		return rst
-
-
 	def time_des_gen(self, start=True):
 		_hour = self.start_datetime.hour if start is True else self.end_datetime.hour
 		_minute = self.start_datetime.minute if start is True else self.end_datetime.minute

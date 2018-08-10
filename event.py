@@ -35,7 +35,7 @@ class Event(object):
 	def __get_datetime(self):
 		if self.isUpdate is True and self.hour is None:
 			return
-			
+
 		hour = self.hour if self.hour is not None else 0
 		minute = self.minute if self.minute is not None else 0
 
@@ -156,6 +156,10 @@ class Event(object):
 			day = '明天'
 		elif (year_diff == 0) & (month_diff == 0) & (day_diff == 2):
 			day = '后天'
+		elif (year_diff == 0) & (month_diff == 0) & (day_diff == -1):
+			day = '昨天'
+		elif (year_diff == 0) & (month_diff == 0) & (day_diff == -2):
+			day = '前天'
 		else:
 			day = str(_day) + '号'
 

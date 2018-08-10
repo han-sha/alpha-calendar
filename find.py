@@ -5,7 +5,7 @@ from sqlalchemy import extract, and_, desc
 import random
 
 class Find(object):
-	def __init__(self, db, jdID, event, nearest=False, anstype=None):
+	def __init__(self, db, jdID, event=None, nearest=False, anstype=None):
 		self.db = db
 		self.jdID = jdID
 		self.e = event
@@ -14,8 +14,9 @@ class Find(object):
 
 		self.key = []
 
-		if self.e.get_detail() is not None:
-			self.__key_gen()
+		if self.e is not None:
+			if self.e.get_detail() is not None:
+				self.__key_gen()
 
 
 	def find(self):
@@ -25,6 +26,10 @@ class Find(object):
 				return rst
 
 		rst = self.__which_find()
+		return rst
+
+	def help(self):
+		rst = self.__help_find()
 		return rst
 
 
@@ -62,6 +67,26 @@ class Find(object):
 		else:
 			rst = self.__confirm(year=year, month=month, \
 				day=day, hour=hour, minute=minute, detail=detail)
+		return rst
+
+
+	def __help_find(self):
+		event = self.db.session.query(Agenda).filter(Agenda.jdID==self.jdID).all()
+		print(event)
+		if len(event) == 0:
+			phrases = ['您可以先回复添加来规划您的第一条计划哈。', '''添加计划有很多种方法噢，比如您可以说
+			我要添加明天早上9点的会议来添加您的第一条计划。''', '''目前支持添加的计划类型有很多噢，包括工作类（如会议、
+			和老板碰面、加班、团建），运动类（如健身、跑步、骑行、游泳、打网球），个人活动类（如约会、聚餐、
+			看电影、购物）。活动类型会不断扩展，感谢您的宝贵意见。''', '''您每次获取到的帮助可能都会有点不一样噢。''']
+			n = random.randrange(0, len(phrases), 1)
+			rst = '欢迎使用您的智能规划本，' + phrases[n]
+		else:
+			phrases = ['''您知道吗，如果您问：我今天都安排了什么事情？或者我下次的会议是什么时候？您的智能规划本
+			都能懂呢。''', '''查找或删除计划的方法有很多种噢，如果您说：我要查下次会议是什么时候，或者我要删除
+			下次会议，您的智能规划本都能明白呢。''', '''如果您要更改计划的话，可以先说我要更改计划，规划本会引导您
+			完成计划修改哈。''', '''要是您现在有时间的话，可以回复听你唠唠或者听听你的建议来让规划本帮您打发时间哈。''']
+			n = random.randrange(0, len(phrases), 1)
+			rst = phrases[n]
 		return rst
 
 
@@ -174,14 +199,19 @@ class Find(object):
 		else:
 			rst = '在未来的三天里，您安排了这些事儿：'
 			for e in events:
-				n = random.randrange(0, len(self.approximate), 1)
+				i = random.randrange(0, len(self.approximate), 1)
 				year, month, day, hour, minute, duration, detail = \
 				e.startyear(), e.startmonth(), e.startday(), e.starthour(), \
 				e.startminute(), e.duration(), e.detail()
 				a = Event(year=year, month=month, day=day, 
 					hour=hour, minute=minute, duration=duration, event_detail=detail)
-				rst += a.day_des_gen() + a.time_des_gen() + '的' + a.get_detail() + '计划，' + \
-				self.approximate[n] + a.duration_des_gen()
+				des = [a.day_des_gen() + a.time_des_gen() + '您安排了' + a.get_detail() + '计划，' + \
+				self.approximate[i] + a.duration_des_gen() + '。', 
+				a.day_des_gen() + a.time_des_gen() + '您要去' + a.get_detail() + '，' + self.approximate[i]\
+				+ a.duration_des_gen() + '。', a.day_des_gen() + a.time_des_gen() + '的' + a.get_detail() +\
+				self.approximate[i] + a.duration_des_gen() + '。']
+				j = random.randrange(0, len(des), 1)
+				rst += des[j]
 		return rst
 
 
@@ -227,12 +257,8 @@ class Find(object):
 			return rst
 		else:
 			n = len(events)
-			if (diff.days < 0) or (diff.seconds < 0):
-				rst = "这天的" if anstype == '有什么事要做' \
-				else "在过去的这天里，您规划了" + str(n) + "条事项："
-			else:
-				rst = "这天的" if anstype == '有什么事要做' \
-				else "在未来的这天里，您规划了" + str(n) + "条事项："
+			rst = "这天的" if anstype == '有什么事要做' \
+			else self.e.day_des_gen() + '您有这' + str(n) + '件安排：'
 			for e in events:
 				a = e.make_event()
 				rst += a.get_des()

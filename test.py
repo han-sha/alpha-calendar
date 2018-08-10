@@ -64,8 +64,16 @@ def process_request(req):
 		res = suggest(jdID, db)
 	elif action == 'Alpha.CancelIntent':
 		res = cancel()
+	elif action == 'Alpha.HelpIntent':
+		res = help(jdID)
+	elif action = 'Alpha.RepeatIntent'
+		res = repeat(jdID)
 	return res
 
+def help(jdID):
+	e = Find(jdID=jdID, db=db)
+	rst = e.help()
+	return rst
 
 def cancel():
 	phrase = ['感谢您的使用，向您比心。', '我会变得更好，欢迎您再次使用。', '您已成功退出，感谢您的使用。']
@@ -185,12 +193,6 @@ def postResponse(rst):
 	res["shouldEndSession"] = "true"
 	return res	
 
-def log_error(err):
-	f = open('err', 'a')
-	f.write(str(err))
-	f.write('\n')
-	f.write('\n')
-	f.close()
 
 # run the app.
 if __name__ == "__main__":

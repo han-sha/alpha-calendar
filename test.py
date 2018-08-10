@@ -1,4 +1,4 @@
-import os, json, time, re, random
+import os, json, time, re, random, fileinput
 from datetime import datetime
 from datetime import timedelta
 from flask import (Flask, request, abort, jsonify)
@@ -66,9 +66,40 @@ def process_request(req):
 		res = cancel()
 	elif action == 'Alpha.HelpIntent':
 		res = help(jdID)
-	elif action = 'Alpha.RepeatIntent'
+	else:
 		res = repeat(jdID)
+	if action != 'Alpha.RepeatIntent':
+		record(jdID, res)
 	return res
+
+
+def record(jdID, info):
+	f = open('repeat', 'r')
+	lines = f.readlines()
+	for n,l in enumerate(lines):
+		line = l.rstrip().split(' ')
+		print(line[0] == jdID)
+		if line[0] == jdID:
+			lines.remove(lines[n])
+		break
+	f.close()
+	lines.append(jdID + ' ' + info.replace('\n', '').replace('\t', '') + '\n')
+	print(lines)
+	f2 = open('repeat', 'w')
+	f2.writelines(lines)
+
+
+def repeat(jdID):
+	f = open('repeat', 'r')
+	for l in f.readlines():
+		l = l.rstrip().split(' ')
+		print(l)
+		if l[0] == jdID:
+			rst = l[1]
+			return rst
+
+	return '您之前还没有和规划本有过任何互动噢。您可以回复帮助来获取使用信息。'
+
 
 def help(jdID):
 	e = Find(jdID=jdID, db=db)
@@ -82,11 +113,16 @@ def cancel():
 
 
 def add(sessID, jdID, content):
-	date, time, duration, detail = \
-	content['AlphaDate'], content['StartTime'], content['Duration'], content['Event']
+	date, time, duration, detail, endate, endtime = \
+	content['AlphaDate'], content['StartTime'], content['Duration'], content['Event'], content['EndDate'], content['EndTime']
 
 	year, month, day, hour, minute, duration, detail = \
 	get_properties(date=date, time=time, duration=duration, detail=detail)
+
+	endyear, endmonth, enday, endhour, endminute, __, __ = get_properties(date=endate, time=endtime)
+	if endyear is None and endhour is not None:
+		endyear, endmonth, enday = year, month, day
+		duration = datetime(endyear, endmonth, enday, endhour, endminute) - datetime(year, month, day, hour, minute)
 
 	event = Event(sessID=sessID, jdID=jdID, year=year, month=month, 
 		day=day,hour=hour, minute=minute, duration=duration, event_detail=detail)

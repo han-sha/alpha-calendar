@@ -17,6 +17,8 @@ class Add(object):
 		self.year = event.get_year()
 		self.month = event.get_month()
 		self.day = event.get_day()
+		self.detail = event.get_detail()
+		self.duration = event.get_duration()
 
 
 	def __which_add(self):
@@ -24,11 +26,19 @@ class Add(object):
 		if (diff.days < 0) or (diff.seconds < 0) or (diff.microseconds < 0):
 			rst = self.__pastevent_error_gen()
 			return rst
-		if (self.e.get_detail() in self.exclusion):
+		if (self.detail in self.exclusion):
 			rst = '您计划的具体内容有点奇怪，添加失败了。'
+			return rst
+		if self.duration is None:
+			rst = self.__duration_error_gen()
 			return rst
 		rst = self.__add()
 		return rst
+
+	def __duration_error_gen(self):
+		return '请您告诉我该计划预计几点结束，或者需要多久噢。您可以说，我要添加' + self.e.day_des_gen() + self.e.time_des_gen()\
+		+ '到某某时刻的' + self.detail + '，或者我要添加' + self.e.day_des_gen() + self.e.time_des_gen() + '开始预计需要几个小时的'\
+		+ self.detail + '。'
 
 
 	def __pastevent_error_gen(self):
@@ -40,8 +50,8 @@ class Add(object):
 
 	def __add(self):
 		agenda = Agenda(sessID=self.e.get_sessID(), jdID=self.jdID, 
-			agendaType=self.e.get_detail(), startTime=self.e.get_startime(), 
-			endTime=self.e.get_endtime(), agendaDetail=self.e.get_detail())
+			agendaType=self.detail, startTime=self.e.get_startime(), 
+			endTime=self.e.get_endtime(), agendaDetail=self.detail)
 
 		try:
 			self.db.session.add(agenda)
@@ -51,7 +61,9 @@ class Add(object):
 			rst = "您的规划本出了点小问题，这条计划添加失败了..."
 			return rst
 
-		rst = "已成功帮您添加了这条计划，感谢您的使用哈"
+		rst = "已成功帮您添加了" + self.e.day_des_gen() + self.e.time_des_gen() + '开始，预计在' + self.e.day_des_gen(start=False)\
+		+ self.e.time_des_gen(start=False) + '结束的' + self.detail + '计划哈。感谢您的使用。'
+
 		return rst
 
 

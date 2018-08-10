@@ -129,7 +129,7 @@ class Delete(object):
 		rst = '已经帮您删除' + str(len(record)) + '条计划了哟。这些计划是：'
 		for e in record:
 			a = e.make_event()
-			rst += a.day_des_gen() + a.time_des_gen() + detail + '计划。'
+			rst += a.day_des_gen() + a.time_des_gen() + a.get_detail() + '计划。'
 
 		rst += '感谢您的使用！'
 		return rst

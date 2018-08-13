@@ -39,38 +39,46 @@ def main():
 	f.write('\n')
 	f.write('\n')
 	req = request.json
-	rst = process_request(req)
-	response = postResponse(rst)
+	rst, action = process_request(req)
+	response = postResponse(rst, action)
 	return jsonify(response)
 
 
 def process_request(req):
 	request = req['request']
 	action = request['intent']['name']
+	timestamps = request['timestamp']
 	jdID = req['session']['user']['userId'].replace('.','')
 	sessID = req['session']['sessionId']
 	if 'Alpha' not in action:
 		content = request['intent']['slots']
 
 	if action == 'Add':
-		res = add(sessID, jdID, content)
+		res = add(sessID, jdID, content, timestamps)
+		res += '请问您还需要添加什么计划？'
 	elif action == 'Change':
 		res = update(jdID, content)
+		res += '请问你还需要修改什么计划？'
 	elif action == 'Delete':
 		res = delete(jdID, content)
+		res += '请问您还需要删除什么计划？'
 	elif action == 'Find':
 		res = find(jdID, content)
+		res += '请问您还需要查找什么计划？'
 	elif action == 'Suggestion':
 		res = suggest(jdID, db)
+		res += '如果您对这个建议不满意，您可以再继续说听听建议来获取不同的回复噢。'
 	elif action == 'Alpha.CancelIntent':
 		res = cancel()
 	elif action == 'Alpha.HelpIntent':
 		res = help(jdID)
+		res += '请问您希望添加，查找，修改，删除计划，还是听建议呢？'
 	else:
 		res = repeat(jdID)
+		res += '请问您希望添加，查找，修改，删除计划，还是听建议呢？'
 	if action != 'Alpha.RepeatIntent':
 		record(jdID, res)
-	return res
+	return res, action
 
 
 def record(jdID, info):
@@ -112,7 +120,7 @@ def cancel():
 	return phrase[n]
 
 
-def add(sessID, jdID, content):
+def add(sessID, jdID, content, timestamps):
 	date, time, duration, detail, endate, endtime = \
 	content['AlphaDate'], content['StartTime'], content['Duration'], content['Event'], content['EndDate'], content['EndTime']
 
@@ -127,7 +135,7 @@ def add(sessID, jdID, content):
 	event = Event(sessID=sessID, jdID=jdID, year=year, month=month, 
 		day=day,hour=hour, minute=minute, duration=duration, event_detail=detail)
 
-	add = Add(db=db, jdID=jdID, event=event)
+	add = Add(db=db, timestamps=timestamps, jdID=jdID, event=event)
 	rst = add.add()
 	return rst
 
@@ -219,14 +227,14 @@ def get_properties(date=None, time=None, duration=None, detail=None):
 	return year, month, day, hour, minute, duration, detail
 
 
-def postResponse(rst):
+def postResponse(rst, action):
 	res = {}
 	res["version"] = "1.0"
 	res["response"] = {}
 	res["response"]["output"] = {}
 	res["response"]["output"]["text"] = rst
 	res["response"]["output"]["type"] = "PlainText"
-	res["shouldEndSession"] = "true"
+	res["shouldEndSession"] = 'true' if action == 'Alpha.CancelIntent' else 'false'
 	return res	
 
 

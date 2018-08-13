@@ -6,13 +6,14 @@ import random
 
 
 class Add(object):
-	def __init__(self, db, jdID, event):
+	def __init__(self, db, jdID, timestamps, event):
 
 		self.exclusion = ['所有计划', '忽略此项', '事务', '原始', None]
 
 		self.db = db
 		self.jdID = jdID
 		self.e = event
+		self.timestamps = timestamps
 
 		self.year = event.get_year()
 		self.month = event.get_month()
@@ -42,14 +43,14 @@ class Add(object):
 
 
 	def __pastevent_error_gen(self):
-		error = ["您的行程本只能协助您规划未来的计划，并不支持记录以往的事务哈", 
-		"出错了哦，您要添加的计划已经是过去时了", "出错了哦，过去的计划您也加，我都傻傻分不清楚了"]
+		error = ["您的行程本只能协助您规划未来的计划，并不支持记录以往的事务哈。", 
+		"出错了哦，您要添加的计划已经是过去时了。", "出错了哦，过去的计划您也加，我都傻傻分不清楚了。"]
 		num = random.randrange(0, len(error), 1)
 		return error[num]
 
 
 	def __add(self):
-		agenda = Agenda(sessID=self.e.get_sessID(), jdID=self.jdID, 
+		agenda = Agenda(timestamps=self.timestamps, sessID=self.e.get_sessID(), jdID=self.jdID, 
 			agendaType=self.detail, startTime=self.e.get_startime(), 
 			endTime=self.e.get_endtime(), agendaDetail=self.detail)
 
@@ -62,7 +63,7 @@ class Add(object):
 			return rst
 
 		rst = "已成功帮您添加了" + self.e.day_des_gen() + self.e.time_des_gen() + '开始，预计在' + self.e.day_des_gen(start=False)\
-		+ self.e.time_des_gen(start=False) + '结束的' + self.detail + '计划哈。感谢您的使用。'
+		+ self.e.time_des_gen(start=False) + '结束的' + self.detail + '计划哈。'
 
 		return rst
 

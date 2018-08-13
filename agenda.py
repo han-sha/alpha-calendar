@@ -8,14 +8,17 @@ db = SQLAlchemy()
 class Agenda(db.Model):
 	__tablename__='JDSMARTAGENDA'
 
-	sessID = db.Column(db.String(63), unique=True, nullable=False, primary_key=True)
+	timestamps = db.Column(db.String(30), nullable=False, primary_key=True)
+	sessID = db.Column(db.String(63), nullable=False)
 	jdID = db.Column(db.String(63), nullable=False)
 	startTime = db.Column(db.DateTime, nullable=False)
 	endTime = db.Column(db.DateTime)
 	agendaType = db.Column(db.String(26), nullable=False)
 	agendaDetail = db.Column(db.String(126))
 
-	def __init__(self, sessID=None, jdID=None, startTime=None, endTime=None, agendaType=None, agendaDetail=None):
+	def __init__(self, timestamps=None, sessID=None, jdID=None, startTime=None, 
+		endTime=None, agendaType=None, agendaDetail=None):
+		self.timestamps = timestamps
 		self.sessID = sessID
 		self.jdID = jdID
 		self.startTime = startTime
@@ -43,6 +46,9 @@ class Agenda(db.Model):
 
 	def detail(self):
 		return self.agendaDetail
+
+	def timestamp(self):
+		return self.timestamp
 
 	def make_event(self):
 		year, month, day, hour, minute, detail = \

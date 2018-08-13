@@ -107,7 +107,7 @@ class Find(object):
 			else:
 				a = event.make_event()
 				rst = '您在' + a.day_des_gen() + a.time_des_gen() + '有安排' + \
-				detail + '计划。该计划预计需要' + a.duration_des_gen() + '。请问您还需要查什么呢？'
+				detail + '计划。该计划预计需要' + a.duration_des_gen() + '。'
 		else:
 			event = self.db.session.query(Agenda).filter(
 				and_(Agenda.jdID==self.jdID,
@@ -126,7 +126,7 @@ class Find(object):
 				n = random.randrange(0, len(opening), 1)
 				a = event.make_event()
 				rst = opening[n] + '该计划预计需要' + a.duration_des_gen() + '，结束时间大概在' + \
-				a.time_des_gen() + '左右。请问我还可以帮您查什么？'
+				a.time_des_gen() + '左右。'
 		return rst
 
 
@@ -222,7 +222,7 @@ class Find(object):
 				Agenda.agendaDetail == detail,
 				Agenda.startTime >= datetime.now()))
 		event = query.order_by(Agenda.startTime).all()
-		if event is None:
+		if len(event) == 0:
 			rst = '您还没有安排任何' + detail + '计划哟。您可以回复添加计划来进行规划。'
 		else:
 			ending = ['可不要忘了噢！', '如果对这些功能不满意，您可以使用删除或者修改功能来重新安排。',

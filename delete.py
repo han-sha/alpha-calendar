@@ -52,9 +52,9 @@ class Delete(object):
 					rst = "抱歉...您的规划本出了点小问题，计划删除失败了..."
 					return rst
 				rst = '已成功帮您删除' + self.e.day_des_gen() + self.e.time_des_gen() + \
-				'的' + self.detail + '计划 。感谢您的使用！'
+				'的' + self.detail + '计划 。'
 				return rst
-		rst = '我只找到了' + des + '请问您希望删除哪条计划呢？'
+		rst = '我只找到了' + des + '。'
 		return rst
 
 
@@ -80,7 +80,7 @@ class Delete(object):
 			return rst
 
 		rst = '已成功帮您删除' + record.day_des_gen() + record.time_des_gen() + \
-		'的' + self.detail + '计划啦。请问您还需要删除什么计划吗？'
+		'的' + self.detail + '计划啦。'
 		return rst
 
 

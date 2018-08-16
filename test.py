@@ -46,6 +46,11 @@ def main():
 
 def process_request(req):
 	request = req['request']
+	if 'intent' not in request:
+		phrase = ['请问您需要添加、修改、查找、删除计划，还是听取建议呢？',
+		'请问我能帮您什么吗？']
+		rst = '欢迎使用您的智能规划本，' + phrase[random.randrange(0, len(phrase), 1)]
+		return rst, None
 	action = request['intent']['name']
 	timestamps = request['timestamp']
 	jdID = req['session']['user']['userId'].replace('.','')

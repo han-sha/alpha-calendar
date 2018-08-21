@@ -5,7 +5,7 @@ import re, random
 class Event(object):
 	def __init__(self, sessID=None, jdID=None, year=None, month=None, day=None,
 	 hour=None, minute=None, duration=None, event_type=None, event_detail=None, 
-	 nearest=None, isUpdate=False):
+	 nearest=None, isUpdate=False, isDelete=False):
 
 		self.exclusion = ['所有计划', '忽略此项', '事务', '原始']
 
@@ -14,7 +14,10 @@ class Event(object):
 
 		self.duration = duration
 		self.event_type = event_type
-		self.event_detail = event_detail if event_detail not in self.exclusion else None
+		if isDelete is False:
+			self.event_detail = event_detail if event_detail not in self.exclusion else None
+		else:
+			self.event_detail = event_detail
 
 		self.year = year
 		self.month = month

@@ -20,6 +20,16 @@ class Add(object):
 		self.day = event.get_day()
 		self.detail = event.get_detail()
 		self.duration = event.get_duration()
+		self.details = []
+
+		self.__pop_details()
+
+	def __pop_details(self):
+		f = open('detail', 'r')
+		lines = f.readlines()
+		for l in lines:
+			l = l.rstrip()
+			self.details.append(l)
 
 
 	def __which_add(self):
@@ -27,8 +37,8 @@ class Add(object):
 		if (diff.days < 0) or (diff.seconds < 0) or (diff.microseconds < 0):
 			rst = self.__pastevent_error_gen()
 			return rst
-		if (self.detail in self.exclusion):
-			rst = '您计划的具体内容有点奇怪，添加失败了。'
+		if self.detail not in self.details:
+			rst = '抱歉，暂不支持您所添加的计划类型，请您参考技能说明上所支持的类型进行添加。类型在不断扩展，期待您的宝贵意见。'
 			return rst
 		if self.duration is None:
 			rst = self.__duration_error_gen()

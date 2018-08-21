@@ -47,9 +47,7 @@ def main():
 def process_request(req):
 	request = req['request']
 	if 'intent' not in request:
-		phrase = ['请问您需要添加、修改、查找、删除计划，还是听取建议呢？',
-		'请问我能帮您什么吗？']
-		rst = '欢迎使用您的智能规划本，' + phrase[random.randrange(0, len(phrase), 1)]
+		rst = '欢迎使用您的智能规划本，请问您需要添加、修改、查找、删除计划，还是听取建议呢？'
 		return rst, None
 	action = request['intent']['name']
 	timestamps = request['timestamp']
@@ -91,7 +89,6 @@ def record(jdID, info):
 	lines = f.readlines()
 	for n,l in enumerate(lines):
 		line = l.rstrip().split(' ')
-		print(line[0] == jdID)
 		if line[0] == jdID:
 			lines.remove(lines[n])
 		break
@@ -148,13 +145,13 @@ def add(sessID, jdID, content, timestamps):
 def delete(jdID, content):
 	date, time, detail = content['deleteDate'], content['deleteStartTime'], content['deleteEvent']
 	year, month, day, hour, minute, __, detail = get_properties(date=date, time=time, detail=detail)
-
 	nearest = True if 'value' in content['nearest'] else False
+	print(nearest)
 	cmd = detail if nearest is False else '最近一次'
 	event = Event(jdID=jdID, year=year, month=month, 
-		day=day, hour=hour, minute=minute, event_detail=detail)
+		day=day, hour=hour, minute=minute, event_detail=detail, isDelete=True)
 
-	delete = Delete(db=db, jdID=jdID, event=event, cmd=cmd) if hour is not None else \
+	delete = Delete(db=db, jdID=jdID, event=event, cmd=cmd) if (hour is not None or nearest is True) else \
 	Delete(db=db, jdID=jdID, event=event)
 
 	rst = delete.delete()
@@ -217,6 +214,7 @@ def get_properties(date=None, time=None, duration=None, detail=None):
 		time = time['value'].split(':') if 'value' in time else None
 	if detail is not None:
 		detail = detail['value'] if 'value' in detail else None
+		print(detail)
 	if duration is not None:
 		duration = duration['value'] if 'value' in duration else None
 	if date is not None:

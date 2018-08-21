@@ -8,13 +8,24 @@ class Update(object):
 		self.db = db
 		self.old_event = old_event
 		self.new_event = new_event
+		self.details = []
 
+		self.__pop_details()
+
+	def __pop_details(self):
+		f = open('detail', 'r')
+		lines = f.readlines()
+		for l in lines:
+			l = l.rstrip()
+			self.details.append(l)
 
 	def __which_update(self):
 		if self.new_event.is_future() == False:
-			rst = "更改失败了，您所给的计划开始时间已过。如需删除计划，请回复删除。"
+			rst = "更改失败了，您所给的计划开始时间已过。如需删除计划，请使用删除功能。"
 			return rst
-
+		if self.new_event not in self.details:
+			rst = '更改失败了，暂不支持您的新计划类型，请您参考技能说明上所支持的类型进行添加。类型在不断扩展，期待您的宝贵意见。'
+			return rst
 		if self.old_event.get_hour() is None:
 			rst = self.__multiples()
 		else:

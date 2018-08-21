@@ -53,10 +53,10 @@ class Suggestion(object):
 		type_no = random.randrange(0, 5, 1)
 		if len(self.events) == 0:
 			suggest = self.__nonesense_gen()
-		elif type_no%2 == 1:
-			suggest = self.__ads_gen()
-		else:
+		elif type_no == 4:
 			suggest = self.__nonesense_gen()
+		else:
+			suggest = self.__ads_gen()
 		return suggest
 
 
@@ -106,11 +106,11 @@ class Suggestion(object):
 		"别抛弃我呀，我还在不断进步呢", "好难过的说，一难过就给不了什么建议了", 
 		"想抱怨几句...算了，还是不说了", "我该提些什么建议呢..."]
 
-		self.lazyEnding = ["看在我工作这么努力的份上...今儿就让我打个酱油怎样", "看来您最近安排挺多的，我就不打扰啦。",
-		"不过我今天有些懒...就不具体帮您分析了", "感谢您的使用！我也会更努力的", "遇到这么努力的您，我真的好感动呀"]
+		self.lazyEnding = ["看在我工作这么努力的份上...今儿就让我打个酱油怎样。", "看来您最近安排挺多的，我就不打扰啦。",
+		"不过我今天有些懒...就不具体帮您分析了。", "感谢您的使用！我也会更努力的。", "遇到这么努力的您，我真的好感动呀。"]
 
 		self.adsIntro = ["我向您推荐京东上的: ","我来打个软广告: ","我在京东上找到您可能会喜欢的: ", 
-		"我在京东上找到和"+self.keyword+"有关的"]
+		"我在京东上找到有关的"]
 
 		self.adsEnding = ["打了很多的软广告，希望您不要介意。", "如果您感兴趣的话，可以到京东上购买噢。感谢您的宝贵时间。", 
 		"感谢您听完我的软广告。", "感谢您的时间，希望您喜欢这则广告。"]

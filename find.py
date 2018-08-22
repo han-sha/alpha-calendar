@@ -1,15 +1,17 @@
 from datetime import datetime, timedelta
+import datetime as dtime
 from event import Event
 from agenda import Agenda
 from sqlalchemy import extract, and_, desc
 import random
 
 class Find(object):
-	def __init__(self, db, jdID, event=None, nearest=False, anstype=None):
+	def __init__(self, db, jdID, event=None, selftime=None, nearest=False, anstype=None):
 		self.db = db
 		self.jdID = jdID
 		self.e = event
 		self.nearest = nearest
+		self.selftime = selftime
 		self.approximate = ['预计需要', '大概要', '预计会占用您']
 
 		self.key = []
@@ -89,25 +91,53 @@ class Find(object):
 			rst = phrases[n]
 		return rst
 
+	def __confirm_selftime(self, year, month, day, detail):
+		if self.selftime is None:
+			query = self.db.session.query(Agenda).filter(and_(Agenda.jdID==self.jdID,
+				extract('year', Agenda.startTime) == year,
+				extract('month', Agenda.startTime) == month,
+				extract('day', Agenda.startTime) == day,
+				Agenda.agendaDetail == detail))
+			event = query.order_by(Agenda.startTime).all()
+			return event
+		elif self.selftime == '上午':
+			t1 = datetime(year, month, day, 0, 0)
+			t2 = datetime(year, month, day, 11, 59)
+		elif self.selftime == '下午':
+			t1 = datetime(year, month, day, 12, 0)
+			t2 = datetime(year, month, day, 17, 59)
+		else:
+			t1 = datetime(year, month, day, 18, 0)
+			t2 = datetime(year, month, day, 23, 59)
+		query = self.db.session.query(Agenda).filter(and_(Agenda.jdID==self.jdID,
+			extract('year', Agenda.startTime) == year,
+			extract('month', Agenda.startTime) == month,
+			extract('day', Agenda.startTime) == day,
+			Agenda.startTime.between(t1, t2),
+			Agenda.agendaDetail == detail))
+		event = query.order_by(Agenda.startTime).all()
+		return event
+
 
 	def __confirm(self, year=None, month=None,\
 	 day=None, hour=None, minute=None, detail=None):
 		year, month, day, hour, minute, detail = year, month, day, hour, minute, detail
 		if hour is None:
-			event = self.db.session.query(Agenda).filter(
-				and_(Agenda.jdID==self.jdID,
-				extract('year', Agenda.startTime) == year,
-				extract('month', Agenda.startTime) == month,
-				extract('day', Agenda.startTime) == day,
-				Agenda.agendaDetail == detail)).first()
-			if event is None:
+			event = self.__confirm_selftime(year, month, day, detail)
+			if len(event) == 0:
 				ending = self.__find_next().replace('您还没有安排下次的','事实上，您还没有安排任何未来的')
-				rst = '您并没有在' + self.e.day_des_gen() + \
-				'安排' + detail + '计划呢。' + ending
+				rst = '您并没有在' + self.e.day_des_gen()
+				rst += '' if self.selftime is None else self.selftime
+				rst += '安排关于' + detail + '的计划呢。' + ending
 			else:
-				a = event.make_event()
-				rst = '您在' + a.day_des_gen() + a.time_des_gen() + '有安排' + \
-				detail + '计划。该计划预计需要' + a.duration_des_gen() + '。'
+				rst = '您在' + self.e.day_des_gen()
+				rst += '' if self.selftime is None else self.selftime 
+				rst += '有' + str(len(event)) + '条关于' + detail + '的安排，' 
+				rst += '该计划预计是' if len(event) == 1 else '它们的时间分别是，'
+				for n, a in enumerate(event):
+					a = a.make_event()
+					rst += '从' + a.time_des_gen() + '开始到' + a.time_des_gen(False) + '结束，'
+				rst += '请不要忘记哟。'
 		else:
 			event = self.db.session.query(Agenda).filter(
 				and_(Agenda.jdID==self.jdID,

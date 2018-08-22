@@ -160,7 +160,10 @@ def delete(jdID, content):
 
 
 def find(jdID, content):
-	date, time, detail = content['Date'], content['alphaTime'], content['eventDetail']
+	date, time, detail, selftime = content['Date'], content['alphaTime'], content['eventDetail'], content['selfTime']
+	print(selftime)
+	selftime = None if 'value' not in selftime else selftime['value']
+	print(selftime)
 	year, month, day, hour, minute, __, detail = get_properties(date=date, time=time, detail=detail)
 
 	nearest = True if 'value' in content['nearest'] else False
@@ -168,7 +171,7 @@ def find(jdID, content):
 
 	event = Event(jdID=jdID, year=year, month=month, 
 		day=day, hour=hour, minute=minute, event_detail=detail)
-	find = Find(db=db, jdID=jdID, event=event, nearest=nearest)
+	find = Find(db=db, jdID=jdID, event=event, nearest=nearest, selftime=selftime)
 	rst = find.find()
 	return rst
 

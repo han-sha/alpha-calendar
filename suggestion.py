@@ -62,11 +62,12 @@ class Suggestion(object):
 
 	def __nonesense_gen(self):
 		num = len(self.events)
-		randnum = random.randrange(0, len(self.complainEnding), 1)
 		if num < 5:
+			randnum = random.randrange(0, len(self.complainEnding), 1)
 			rst = "这段时间...您没记录几条计划呀。" + self.complainEnding[randnum]
 		else:
-			rst = "很荣幸呀，这段时间您一共记录了" + num + "条计划。" + self.lazyEnding[randnum]
+			randnum = random.randrange(0, len(self.lazyEnding), 1)
+			rst = "很荣幸呀，这段时间您一共记录了" + str(num) + "条计划。" + self.lazyEnding[randnum]
 
 		return rst
 

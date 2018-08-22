@@ -94,7 +94,7 @@ def record(jdID, info):
 		break
 	f.close()
 	lines.append(jdID + ' ' + info.replace('\n', '').replace('\t', '') + '\n')
-	print(lines)
+	#print(lines)
 	f2 = open('repeat', 'w')
 	f2.writelines(lines)
 
@@ -103,7 +103,7 @@ def repeat(jdID):
 	f = open('repeat', 'r')
 	for l in f.readlines():
 		l = l.rstrip().split(' ')
-		print(l)
+		#print(l)
 		if l[0] == jdID:
 			rst = l[1]
 			return rst
@@ -146,7 +146,7 @@ def delete(jdID, content):
 	date, time, detail = content['deleteDate'], content['deleteStartTime'], content['deleteEvent']
 	year, month, day, hour, minute, __, detail = get_properties(date=date, time=time, detail=detail)
 	nearest = True if 'value' in content['nearest'] else False
-	print(nearest)
+	#print(nearest)
 	cmd = detail if nearest is False else '最近一次'
 	event = Event(jdID=jdID, year=year, month=month, 
 		day=day, hour=hour, minute=minute, event_detail=detail, isDelete=True)
@@ -214,7 +214,7 @@ def get_properties(date=None, time=None, duration=None, detail=None):
 		time = time['value'].split(':') if 'value' in time else None
 	if detail is not None:
 		detail = detail['value'] if 'value' in detail else None
-		print(detail)
+		#print(detail)
 	if duration is not None:
 		duration = duration['value'] if 'value' in duration else None
 	if date is not None:

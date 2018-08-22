@@ -77,14 +77,14 @@ class Find(object):
 			phrases = ['''您可以先回复添加来规划您的第一条计划哈。添加计划有很多种方法噢，比如您可以说
 			我要添加明天早上9点的会议来添加您的第一条计划。目前支持添加的计划类型有很多噢，包括工作类（如会议、
 			和老板碰面、加班、团建），运动类（如健身、跑步、骑行、游泳、打网球），个人活动类（如约会、聚餐、
-			看电影、购物）。活动类型会不断扩展，感谢您的宝贵意见。''']
+			看电影、购物）。活动类型也会不断扩展，感谢您的宝贵意见。''']
 			n = random.randrange(0, len(phrases), 1)
 			rst = '欢迎使用您的智能规划本，' + phrases[n]
 		else:
-			phrases = ['''您知道吗，查找或删除计划的方法有很多种噢，我今天都安排了什么事情？或者我下次的会议是什么时候？您的智能规划本
+			phrases = ['''您知道吗，查找或删除计划的方法有很多种噢。如果您问: 我今天都安排了什么事情？或者我下次的会议是什么时候？您的智能规划本
 			都能懂呢。''', '''查找或删除计划的方法有很多种噢，如果您说：我要查下次会议是什么时候，或者我要删除
-			下次会议，您的智能规划本都能明白呢。''', '''如果您要更改计划的话，可以先说我要更改计划，规划本会引导您
-			完成计划修改哈。''', '''要是您现在有时间的话，可以回复听你唠唠或者听听你的建议来让规划本帮您打发时间哈。''']
+			下次会议，您的智能规划本都能明白呢。如果您要更改计划的话，可以先说我要更改计划，规划本会引导您
+			完成计划修改哈。''']
 			n = random.randrange(0, len(phrases), 1)
 			rst = phrases[n]
 		return rst
@@ -118,7 +118,7 @@ class Find(object):
 				extract('minute', Agenda.startTime) == minute,
 				Agenda.agendaDetail == detail)).first()
 			if event is None:
-				ending = self.__find_next().replace('您还没有安排下次的','事实上，您还没有安排任何未来的')
+				ending = self.__find_next().replace('您还没有安排下次的','事实上，您还没有安排任何未来关于')
 				rst = '您并没有在' + self.e.day_des_gen() + self.e.time_des_gen() + \
 				'安排' + detail + '计划呢。' + ending
 			else:
@@ -138,7 +138,7 @@ class Find(object):
 				Agenda.startTime >= datetime.now()))
 		event = query.order_by(Agenda.startTime).first()
 		if event is None:
-			rst = '您还没有安排下次的' + detail + '计划哟。您可以回复添加计划来规划下一次的' + detail + '。'
+			rst = '您还没有安排下次关于' + detail + '的计划哟。您可以回复添加计划来规划下一次的' + detail + '。'
 		else:
 			ending = ['可不要忘了噢！', 
 			'如需取消安排，请回复删除下一次的' + detail + '计划或者修改下一次的' + detail + '计划。',

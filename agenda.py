@@ -41,6 +41,21 @@ class Agenda(db.Model):
 	def startminute(self):
 		return self.startTime.minute
 
+	def endyear(self):
+		return self.endTime.year
+
+	def endmonth(self):
+		return self.endTime.month
+
+	def endday(self):
+		return self.endTime.day
+
+	def endhour(self):
+		return self.endTime.hour
+
+	def endminute(self):
+		return self.endTime.minute
+
 	def duration(self):
 		return self.endTime - self.startTime
 

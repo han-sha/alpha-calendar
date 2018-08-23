@@ -283,7 +283,7 @@ class Find(object):
 				extract('day', Agenda.startTime) == day))
 		events = query.order_by(Agenda.startTime).all()
 		if len(events) == 0:
-			rst = '您的行程本还没有记录' + self.e.day_des_gen(start=True) + '的任何计划哈'
+			rst = '您的规划本还没有记录' + self.e.day_des_gen(start=True) + '的任何计划哈'
 			return rst
 		else:
 			n = len(events)

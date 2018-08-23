@@ -184,10 +184,13 @@ def suggest(jdID, db):
 
 
 def update(jdID, content):
-	time1, date1, detail1 = content['originalStartTime'], content['originalDate'], content['originalEvent']
-	time2, date2, detail2 = content['changeStartTime'], content['newDate'], content['changeEvent']
+	time1, date1, detail1, selftime1 = content['originalStartTime'], content['originalDate'], content['originalEvent'], content['originalSelfTime']
+	time2, date2, detail2, selftime2 = content['changeStartTime'], content['newDate'], content['changeEvent'], content['newSelfTime']
 	year1, month1, day1, hour1, minute1, __, detail1 = get_properties(date=date1, time=time1, detail=detail1)
 	year2, month2, day2, hour2, minute2, __, detail2 = get_properties(date=date2, time=time2, detail=detail2)
+	
+	selftime1 = None if 'value' not in selftime1 else selftime1['value']
+	selftime2 = None if 'value' not in selftime2 else selftime2['value']
 
 	detail2 = detail1 if detail2 is None else detail2
 	hour2 = hour1 if hour2 is None else hour2
@@ -204,7 +207,7 @@ def update(jdID, content):
 		duration=duration2, event_detail=detail2)
 
 
-	update = Update(db=db, jdID=jdID, old_event=e1, new_event=e2)
+	update = Update(db=db, jdID=jdID, old_event=e1, new_event=e2, old_selftime=selftime1, new_selftime=selftime2)
 	rst = update.update()
 
 	return rst

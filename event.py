@@ -116,9 +116,9 @@ class Event(object):
 	def day_des_gen(self, start=True):
 		now = datetime.now()
 
-		_year = self.start_datetime.year if start is True else self.end_datetime.year
-		_month = self.start_datetime.month if start is True else self.end_datetime.month
-		_day = self.start_datetime.day if start is True else self.end_datetime.day
+		_year = self.year if start is True else self.end_datetime.year
+		_month = self.month if start is True else self.end_datetime.month
+		_day = self.day if start is True else self.end_datetime.day
 
 		year_diff = _year - now.year
 		month_diff = _month - now.month
@@ -165,7 +165,7 @@ class Event(object):
 			day = '前天'
 		else:
 			day = str(_day) + '号'
-
+			
 		return year + month + day
 
 

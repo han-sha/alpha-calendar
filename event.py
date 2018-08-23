@@ -165,7 +165,7 @@ class Event(object):
 			day = '前天'
 		else:
 			day = str(_day) + '号'
-			
+
 		return year + month + day
 
 
@@ -290,3 +290,23 @@ class Event(object):
 			return False
 		else:
 			return True
+
+	def change(self, startyear=None, startmonth=None, startday=None, starthour=None, 
+		startminute=None, endyear=None, endmonth=None, endday=None, endhour=None,
+		endminute=None, detail=None, duration=None):
+		print(self.year)
+		if duration is not None:
+			self.duration = duration
+		if startyear is not None:
+			self.year = startyear
+		if startmonth is not None:
+			self.month = startmonth
+		if startday is not None:
+			self.day = startday
+		if starthour is not None:
+			self.hour = starthour
+		if startminute is not None:
+			self.minute = startminute
+		print(self.duration)
+		self.__get_datetime()
+		self.__get_weekday()

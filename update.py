@@ -20,9 +20,13 @@ class Update(object):
 		self.old_month = self.old_event.get_month()
 		self.old_day = self.old_event.get_day()
 		self.old_detail = self.old_event.get_detail()
+		self.old_hour = self.old_event.get_hour()
+		self.old_minute = self.old_event.get_minute()
 		self.new_year = self.new_event.get_year()
 		self.new_month = self.new_event.get_month()
 		self.new_day  = self.new_event.get_day()
+		self.new_hour = self.new_event.get_hour()
+		self.new_minute = self.new_event.get_minute()
 
 		self.new_detail = self.old_detail if self.new_detail is None else self.new_detail
 
@@ -43,16 +47,17 @@ class Update(object):
 		if self.new_detail not in self.details:
 			rst = '更改失败了，暂不支持您的新计划类型，请您参考技能说明上所支持的类型进行添加。类型在不断扩展，期待您的宝贵意见。'
 			return rst
-		if self.old_event.get_hour() is None and self.new_event.get_hour() is None:
-			if (self.old_selftime is not None) and (self.new_selftime is not None):
+		if self.old_hour is None and self.new_hour is None:
+			if self.old_selftime is not None:
 				rst = self.__selftimes()
-			elif self.old_selftime is not None:
-				rst = self.__old_selftime()
 			elif self.new_selftime is not None:
 				rst = self.__new_selftime()
 			else:
 				rst = self.__multiples()
+		elif self.old_hour is None:
+			rst = self.__multiples()
 		else:
+			print('im here')
 			rst = self.__singles()
 
 		return rst
@@ -85,6 +90,22 @@ class Update(object):
 			rst = '晚上'
 		return rst
 
+
+	def __sanity_check(self):
+		rst = ''
+		events = self.db.session.query(Agenda).filter(and_(Agenda.jdID==self.jdID, 
+			extract('year', Agenda.startTime) == self.new_event.get_year(),
+			extract('month', Agenda.startTime) == self.new_event.get_month(),
+			extract('day', Agenda.startTime) == self.new_event.get_day(),
+			extract('hour', Agenda.startTime) == self.new_event.get_hour(),
+			extract('minute', Agenda.startTime) == self.new_event.get_minute(),
+			Agenda.agendaDetail == self.new_detail)).all()
+		check = True if len(events) == 0 else False
+		if check is False:
+			rst = '很抱歉，更改失败了。您在' + self.new_event.day_des_gen() + self.new_event.time_des_gen() 
+			rst += '已经规划过一条'  + self.new_detail + '计划。请先对该计划进行删除噢。'
+
+		return check, rst
 
 
 	def __query_selftime(self, oldtime=True):
@@ -140,6 +161,10 @@ class Update(object):
 			duration=old_duration)
 		self.new_event = Event(year=self.new_year, month=self.new_month, day=self.new_day, hour=starthour, minute=startminute,
 			duration=new_duration)
+
+		check, rst = self.__sanity_check()
+		if check is False:
+			return rst
 		
 		try:
 			event.startTime = startime
@@ -167,38 +192,18 @@ class Update(object):
 		event, rst, check = self.__query_selftime()
 		if check is False:
 			return rst
-		if self.new_selftime != self.old_selftime:
+		if (self.new_selftime != self.old_selftime) and (self.new_selftime is not None):
 			old_des = self.old_event.day_des_gen()
 			new_des = self.new_event.day_des_gen()
 			rst = '更改失败了噢。请您告诉我新计划的具体时间。比如您可以说：把' + old_des + self.old_selftime + '的' +\
 			self.old_detail + '改到' + new_des + self.new_selftime
-			tmp = '8点。' if (self.new_selftime == '上午' or self.new_selftime == '晚上') else '5点半。'
+			tmp = '8点。' if (self.new_selftime == '上午' or self.new_selftime == '晚上') else '6点。'
 			rst += tmp
 		else:
 			rst = self.__selftime_update(event)
 
 		return rst
 	
-
-	def __old_selftime(self):
-		event, rst, check = self.__query_selftime()
-		if check is False:
-			return rst
-		#event = event[0]
-		#hour, minute = event.starthour(), event.startminute()
-		#domain = self.__check_ts(hour, minute)
-		#if domain == self.new_selftime:
-		rst = self.__selftime_update(event)
-		# else:
-		# 	event = event.make_event()
-		# 	des = event.day_des_gen() + self.old_selftime + '的' + self.old_detail + '计划'
-		# 	rst = '更改失败了噢，您原来的' + self.old_detail + '计划是在' + event.day_des_gen() + event.time_des_gen() + '，请问您要将'
-		# 	rst += '新计划改到' + self.new_event.day_des_gen() +  '的什么时候呢？比如您可以说，将' + des
-		# 	rst += '改为' if self.old_detail != self.new_detail else '改到'
-		# 	rst += self.new_event.day_des_gen() + self.old_selftime
-		# 	rst += '的' + self.new_detail + '计划。' if self.old_detail != self.new_detail else '。'
-
-		return rst
 
 
 	def __multiples(self):
@@ -207,25 +212,32 @@ class Update(object):
 			extract('year', Agenda.startTime) == self.old_event.get_year(),
 			extract('month', Agenda.startTime) == self.old_event.get_month(),
 			extract('day', Agenda.startTime) == self.old_event.get_day(),
-			Agenda.agendaDetail == self.old_event.get_detail()))
+			Agenda.agendaDetail == self.old_detail))
 		events = query.all()
 		if len(events) == 0:
-			rst = '更改失败了噢，您' + self.old_event.day_des_gen() + self.old_event.time_des_gen() + \
-			'并没有' + self.old_event.get_detail() + '这条计划。请您先添加噢。'
+			rst = '更改失败了噢，您并没有在' + self.old_event.day_des_gen() + '制定' + self.old_event.get_detail() + '这条计划。请您先添加噢。'
 		elif len(events) > 1:
 			rst = '您在' + self.old_event.day_des_gen() + '有' + str(len(events)) + '条相似计划。开始时间分别为：'
-			for e in events:
+			for n, e in enumerate(events):
 				a = e.make_event()
-				rst += a.day_des_gen() + a.time_des_gen() + "。"
-			rst += '请问您要更改哪一条呢？'
+				if n == 0:
+					tmp = a.day_des_gen() + a.time_des_gen()
+				rst += a.day_des_gen() + a.time_des_gen() + "，"
+			rst += '请问您要更改哪一条呢？比如您可以说，把' + tmp + '的' + self.old_detail + '改到' + self.new_event.day_des_gen() + '晚上6点。'
 		else:
+			event = query.first()
+			duration = event.duration()
+			self.new_hour = event.starthour() if self.new_hour is None else self.new_hour
+			self.new_minute = event.startminute() if self.new_minute is None else self.new_minute
+
+			self.new_event = Event(year=self.new_year, month=self.new_month, day=self.new_day, hour=self.new_hour,
+				minute=self.new_minute, duration=duration, event_detail=self.new_detail)
+			check, rst = self.__sanity_check()
+			if check is False:
+				return rst
 			try:
-				event = query.first()
-				if self.new_event.get_startime() is None:
-					event.endTime = self.new_event.get_duration() + event.startTime
-				else:
-					event.startTime = self.new_event.get_startime()
-					event.endTime = self.new_event.get_duration() + self.new_event.get_startime()
+				event.startTime = self.new_event.get_startime()
+				event.endTime = self.new_event.get_duration() + self.new_event.get_startime()
 				event.agendaDetail = self.new_event.get_detail()
 				self.db.session.commit()
 			except Exception as err:
@@ -241,6 +253,7 @@ class Update(object):
 
 
 	def __singles(self):
+
 		event = self.db.session.query(Agenda).filter(and_(
 			Agenda.jdID==self.jdID, extract('year', Agenda.startTime) == self.old_event.get_year(),
 			extract('month', Agenda.startTime) == self.old_event.get_month(),
@@ -252,10 +265,17 @@ class Update(object):
 			rst = '更改失败了呢，规划本没有找到' + self.old_event.day_des_gen() + self.old_event.time_des_gen() + \
 			'的' + self.old_event.get_detail() + '计划。请您先进行添加哈。'
 		else:
+			duration = event.duration()
+			self.new_event = Event(year=self.new_year, month=self.new_month, day=self.new_day, hour=self.new_hour,
+				minute=self.new_minute, duration=duration, event_detail=self.new_detail)
+			check, rst = self.__sanity_check()
+			if check is False:
+				return rst
 			try:
 				event.startTime = self.new_event.get_startime()
 				event.endTime = self.new_event.get_endtime()
 				event.agendaDetail = self.new_event.get_detail()
+				self.db.session.commit()
 			except Exception as err:
 				self.__log_error(err)
 				rst = "抱歉，我找到了您要更改的计划，只是现在出了点问题，更改失败了..."

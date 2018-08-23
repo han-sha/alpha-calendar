@@ -2,6 +2,7 @@
 from event import Event
 from flask_sqlalchemy import SQLAlchemy
 import test
+from datetime import datetime, timedelta
 
 db = SQLAlchemy()
 
@@ -57,7 +58,8 @@ class Agenda(db.Model):
 		return self.endTime.minute
 
 	def duration(self):
-		return self.endTime - self.startTime
+		diff = self.endTime - self.startTime
+		return diff
 
 	def detail(self):
 		return self.agendaDetail

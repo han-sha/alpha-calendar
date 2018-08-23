@@ -18,6 +18,8 @@ class Add(object):
 		self.year = event.get_year()
 		self.month = event.get_month()
 		self.day = event.get_day()
+		self.hour = event.get_hour()
+		self.minute = event.get_minute()
 		self.detail = event.get_detail()
 		self.duration = event.get_duration()
 		self.details = []
@@ -46,6 +48,7 @@ class Add(object):
 		rst = self.__add()
 		return rst
 
+
 	def __duration_error_gen(self):
 		return '请您告诉我该计划预计几点结束，或者需要多久噢。您可以说，我要添加' + self.e.day_des_gen() + self.e.time_des_gen()\
 		+ '到某某时刻的' + self.detail + '，或者我要添加' + self.e.day_des_gen() + self.e.time_des_gen() + '开始预计需要几个小时的'\
@@ -59,7 +62,31 @@ class Add(object):
 		return error[num]
 
 
+	def __sanity_check(self):
+		rst = ''
+		events = self.db.session.query(Agenda).filter(and_(Agenda.jdID==self.jdID,
+				extract('year', Agenda.startTime) == self.year,
+				extract('month', Agenda.startTime) == self.month,
+				extract('day', Agenda.startTime) == self.day,
+				extract('hour', Agenda.startTime) == self.hour,
+				extract('minute', Agenda.startTime) == self.minute,
+				Agenda.agendaDetail == self.detail)).all()
+
+		check = True if len(events) == 0 else False
+		if check is False:
+			event = events[0].make_event()
+			rst = '不好意思，添加失败了噢。您在' + event.day_des_gen() + event.time_des_gen() + '已有一条' + event.get_detail() + '的计划；' +\
+			'这条计划预计需要' + event.duration_des_gen() + '，将在' + event.day_des_gen(start=False) + event.time_des_gen(start=False) + '。' +\
+			'如果您对这条不满意，可以先删除后再添加新计划，或者使用修改功能进行修改。'
+
+		return check, rst
+
+
 	def __add(self):
+		check, rst = self.__sanity_check()
+		if check is False:
+			return rst
+
 		agenda = Agenda(timestamps=self.timestamps, sessID=self.e.get_sessID(), jdID=self.jdID, 
 			agendaType=self.detail, startTime=self.e.get_startime(), 
 			endTime=self.e.get_endtime(), agendaDetail=self.detail)

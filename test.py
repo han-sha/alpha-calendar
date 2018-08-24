@@ -112,15 +112,28 @@ def repeat(jdID):
 	return '您之前还没有和规划本有过任何互动噢。您可以回复帮助来获取使用信息。'
 
 
+
 def help(jdID):
 	e = Find(jdID=jdID, db=db)
 	rst = e.help()
 	return rst
 
+
+
 def cancel():
 	phrase = ['感谢您的使用，向您比心。', '我会变得更好，欢迎您再次使用。', '您已成功退出，感谢您的使用。']
 	n = random.randrange(0, len(phrase), 1)
 	return phrase[n]
+
+
+
+def get_duration(endate, endtime, duration=None, year=None, month=None, day=None, hour=None, minute=None):
+	endyear, endmonth, enday, endhour, endminute, __, __ = get_properties(date=endate, time=endtime)
+	if endyear is None and endhour is not None:
+		endyear, endmonth, enday = year, month, day
+		duration = datetime(endyear, endmonth, enday, endhour, endminute) - datetime(year, month, day, hour, minute)
+	return duration
+
 
 
 def add(sessID, jdID, content, timestamps):
@@ -130,10 +143,8 @@ def add(sessID, jdID, content, timestamps):
 	year, month, day, hour, minute, duration, detail = \
 	get_properties(date=date, time=time, duration=duration, detail=detail)
 
-	endyear, endmonth, enday, endhour, endminute, __, __ = get_properties(date=endate, time=endtime)
-	if endyear is None and endhour is not None:
-		endyear, endmonth, enday = year, month, day
-		duration = datetime(endyear, endmonth, enday, endhour, endminute) - datetime(year, month, day, hour, minute)
+	duration = get_duration(endate=endate, endtime=endtime, duration=duration, year=year,
+	 month=month, day=day, hour=hour, minute=minute)
 
 	event = Event(sessID=sessID, jdID=jdID, year=year, month=month, 
 		day=day,hour=hour, minute=minute, duration=duration, event_detail=detail)
@@ -143,17 +154,19 @@ def add(sessID, jdID, content, timestamps):
 	return rst
 
 
+
 def delete(jdID, content):
-	date, time, detail = content['deleteDate'], content['deleteStartTime'], content['deleteEvent']
+	date, time, detail = content['dDate'], content['dSTime'], content['dEvent']
 	year, month, day, hour, minute, __, detail = get_properties(date=date, time=time, detail=detail)
 	nearest = True if 'value' in content['nearest'] else False
 	#print(nearest)
-	cmd = detail if nearest is False else '最近一次'
+	selftime = None if 'value' not in content['SeTime'] else content['SeTime']['value']
+	cmd = None if 'value' not in content['dAll'] else content['dAll']['value']
+	cmd = cmd if nearest is False else '最近一次'
 	event = Event(jdID=jdID, year=year, month=month, 
 		day=day, hour=hour, minute=minute, event_detail=detail, isDelete=True)
 
-	delete = Delete(db=db, jdID=jdID, event=event, cmd=cmd) if (hour is not None or nearest is True) else \
-	Delete(db=db, jdID=jdID, event=event)
+	delete = Delete(db=db, jdID=jdID, event=event, selftime=selftime, cmd=cmd)
 
 	rst = delete.delete()
 
@@ -162,9 +175,7 @@ def delete(jdID, content):
 
 def find(jdID, content):
 	date, time, detail, selftime = content['Date'], content['alphaTime'], content['eventDetail'], content['selfTime']
-	print(selftime)
 	selftime = None if 'value' not in selftime else selftime['value']
-	print(selftime)
 	year, month, day, hour, minute, __, detail = get_properties(date=date, time=time, detail=detail)
 
 	nearest = True if 'value' in content['nearest'] else False
@@ -185,10 +196,12 @@ def suggest(jdID, db):
 
 
 def update(jdID, content):
-	time1, date1, detail1, selftime1 = content['originalStartTime'], content['originalDate'], content['originalEvent'], content['originalSelfTime']
-	time2, date2, detail2, selftime2 = content['changeStartTime'], content['newDate'], content['changeEvent'], content['newSelfTime']
+	time1, date1, detail1, selftime1 = content['oSTime'], content['oDate'], content['oEvent'], content['oSeTime']
+	time2, date2, detail2, selftime2 = content['nSTime'], content['nDate'], content['nEvent'], content['nSeTime']
 	year1, month1, day1, hour1, minute1, __, detail1 = get_properties(date=date1, time=time1, detail=detail1)
 	year2, month2, day2, hour2, minute2, __, detail2 = get_properties(date=date2, time=time2, detail=detail2)
+
+	endtime = content['nETime']
 
 	selftime1 = None if 'value' not in selftime1 else selftime1['value']
 	selftime2 = None if 'value' not in selftime2 else selftime2['value']
@@ -196,7 +209,7 @@ def update(jdID, content):
 	detail2 = detail1 if detail2 is None else detail2
 	hour2 = hour1 if hour2 is None else hour2
 	minute2 = minute1 if minute2 is None else minute2
-	duration2 = content['changeDuration']['value'] if 'value' in content['changeDuration'] else None
+	duration2 = get_duration(endate=date2, endtime=endtime, year=year2, month=month2, day=day2, hour=hour2, minute=minute2)
 
 	e1 = Event(jdID=jdID, year=year1, month=month1, 
 		day=day1, hour=hour1, minute=minute1, isUpdate=True,
